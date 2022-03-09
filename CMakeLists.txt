@@ -6,4 +6,4 @@ SET(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-pthread")
 aux_source_directory(./src DIR_SRC)
 include_directories(./include)
 
-add_executable(Demo ${DIR_SRC})
+add_executable(Demo ${DIR_SRC} test/Thread_pool-test.cpp)

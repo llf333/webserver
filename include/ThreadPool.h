@@ -10,6 +10,7 @@
 
 #include<future>
 
+
 class Thread_Pool
 {
 private:
@@ -52,11 +53,16 @@ auto Thread_Pool::Add_task(F&& f,Args&&... args) -> std::future<typename std::re
 
         if(stop_)
             throw std::runtime_error("enqueue on stopped ThreadPool");
+        task_que.emplace([tsk](){
+            (*tsk)();
+        });//这句话的理解是传一个std::function<void()>，这个function里面执行tsk.
 
-        task_que.emplace([tsk](){*tsk;});//???????可以直接解引用吗
+       //bug——task_que.emplace((*tsk));//不能直接解引用，packaged打包的函数和std::function<void()>类型不一致
+
     }
 
     cv.notify_one();
+
     return res;//返回一个任务的future
 }
 

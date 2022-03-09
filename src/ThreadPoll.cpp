@@ -2,6 +2,8 @@
 
 #include"ThreadPool.h"
 
+#include<iostream>
+
 Thread_Pool::Thread_Pool(size_t size) :stop_(false)
 {
     for(size_t i=0;i<size;++i)
@@ -25,6 +27,7 @@ Thread_Pool::Thread_Pool(size_t size) :stop_(false)
                 this->task_que.pop();
             }
             tsk();
+
         }
     });
 }
