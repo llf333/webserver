@@ -49,15 +49,40 @@ bool TimeWheel::TimerWheel_Remove_Timer(Timer* timer)
 {
     if(!timer) return false;
 
+    slot[timer->PosInWheel].remove(timer);
+
+    delete timer;
+    return true;
+}
+
+bool TimeWheel::TimerWheel_Adjust_Timer(Timer* timer,std::chrono::seconds timeout)
+{
+    if(!timer) return false;
+
+    if(timeout<std::chrono::seconds(0)) return false;
+
+    size_t pos=0,cycle=0;
+    if(timeout<Si)//向上整合
+    {
+        cycle=0;
+        pos=1;
+    }
+    else
+    {
+        cycle=(timeout/Si)/SizeOfTW;
+        pos=(CurrentPos+(timeout/Si)%SizeOfTW)%SizeOfTW;
+    }
     for(auto& it:slot[timer->PosInWheel])
     {
-        if(it==timer) {
-            delete it;
+        if(it==timer){
+            it->PosInWheel=pos;
+            it->Turns=cycle;
             return true;
         }
     }
     return false;
 }
+
 
 
 
