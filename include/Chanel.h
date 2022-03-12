@@ -35,12 +35,15 @@ public:
     void Register_DiscHandle(CALLBACK func) {disconn_handle=std::move(func);}
     void CallRevents();
 
+    __uint32_t Get_events(){return events;}
     void Set_events(__uint32_t evnt) {events=evnt;}
+
     void Set_revents(__uint32_t revnt) {revents=revnt;}
 
     int Get_fd() {return fd;}
     Httpdata* Get_holder(){return holder;}
     bool Get_isconn(){return is_coonect};
+    bool IsEqualToLast();
 
 private:
     void CallRdfunc();

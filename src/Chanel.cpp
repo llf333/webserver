@@ -9,9 +9,6 @@ Chanel::Chanel(int _fd, bool is_conn_, std::chrono::seconds timeout): fd(_fd),is
 Chanel::~Chanel()
 {
     close(fd);
-
-    if(holder)
-    delete holder;
 }
 
 void Chanel::CallRevents()
@@ -50,4 +47,11 @@ void Chanel::CallDiscfunc()
 {
     if(disconn_handle) disconn_handle();
     else;//打印日志：还没注册
+}
+
+bool Chanel::IsEqualToLast()
+{
+    __uint32_t tmp=last_event;
+    last_event=Get_events();
+    return tmp==Get_events();
 }

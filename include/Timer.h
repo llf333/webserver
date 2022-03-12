@@ -5,7 +5,7 @@
 #include<functional>
 #include<list>
 #include<vector>
-#include<chrono>
+#include "Other.h"
 
 class Chanel;
 
@@ -27,12 +27,13 @@ private:
 public:
     size_t Timer_GetPos()   {return PosInWheel;}
     size_t Timer_GetTurns() {return Turns;}
+    void Timer_TurnsDecline() {Turns--;}
     Timer(size_t pos,size_t turns);
 
     friend class TimeWheel;
 
 private:
-    void ExecuteCallbackFunc();
+    void ExecuteCallbackFunc();//之所以是私有的，因为只能通过友元时间轮来调用
 };
 
 /*!
@@ -53,7 +54,7 @@ private:
     void tick();//tick的功能就是到时后，执行当前槽中的已经到时的定时器，并移动至下一个槽
 
 public:
-    int tick_d[2]{};//??? 用于tick时间轮的管道
+    int tick_d[2]{};// 用于tick时间轮的管道
 
 public:
     TimeWheel(size_t maxsize);
@@ -65,5 +66,4 @@ public:
     bool TimerWheel_Adjust_Timer(Timer* timer,std::chrono::seconds timeout);
 
 };
-
 #endif
