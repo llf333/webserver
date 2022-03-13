@@ -6,7 +6,10 @@
 #include<unistd.h>
 #include<mutex>
 #include<cstring>
-
+#include<optional>
+#include<string>
+#include<regex>
+#include<iostream>
 
 class GlobalValue
 {
@@ -17,5 +20,7 @@ public:
 
 
 bool ReadData(int fd,char* buffer);
+
+std::optional<std::tuple<int,int,std::string>> AnalyseCommandLine(int argc,char* argv[]);
 
 #endif //WEBSERVER_OTHER_H
