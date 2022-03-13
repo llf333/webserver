@@ -19,13 +19,18 @@ private:
 
     int epollfd;
     static const int PerEpollMaxEvent=4096;
+    static const int Epoll_timeout=1;//如果设置为0，理论上很占cpu，因为内核会一直调用epoll，但还未测试
     epoll_event events[PerEpollMaxEvent];
     std::unique_ptr<Chanel> chanelpool[PerEpollMaxEvent];
     std::unique_ptr<Httpdata> httppool[PerEpollMaxEvent];
 
-    TimeWheel wheelOFloop;
+    TimeWheel* wheelOFloop;
+
+    bool stop;
 
 public:
+    EventLoop(bool ismain);
+    ~EventLoop();
     bool AddChanel(Chanel* CHNL,__uint32_t EV);
     bool MODChanel(Chanel* CHNL,__uint32_t EV);
     bool DELChanel(Chanel* CHNL);
@@ -34,6 +39,8 @@ public:
     void StartLoop();
     void StopLoop();
 
+private:
+    void ListenAndCall();
 };
 
 #endif //WEBSERVER_EVENTLOOP_H

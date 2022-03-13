@@ -1,6 +1,21 @@
 // Created by llf on 2022/3/11.
 
+#include "Timer.h"
 #include "EventLoop.h"
+
+EventLoop::EventLoop(bool ismain): is_mainReactor(ismain),epollfd(epoll_create1(EPOLL_CLOEXEC))
+                                   ,wheelOFloop(new TimeWheel(12)),stop(true)
+{
+
+}
+
+EventLoop::~EventLoop()
+{
+    stop=false;
+    delete wheelOFloop;
+    close(epollfd);
+}
+
 
 bool EventLoop::AddChanel(Chanel* CHNL,__uint32_t EV)
 {
@@ -79,4 +94,52 @@ bool EventLoop::DELChanel(Chanel* CHNL)
     }
     chanelpool[fd].reset(nullptr);
     return true;
+}
+
+void EventLoop::StartLoop()
+{
+    stop= false;
+    while(!stop)
+    {
+        ListenAndCall();
+    }
+    stop=true;
+}
+
+void EventLoop::ListenAndCall()
+{
+    while(!stop)
+    {
+        int number= epoll_wait(epollfd,events,PerEpollMaxEvent,Epoll_timeout);
+        if(number<0&& errno !=EINTR)
+        {
+            //日志输出epoll失败
+            //这里不对系统调用做处理
+        }
+        if(number==0)
+        {
+            //日志输出epoll超时
+            continue;
+        }
+        for(int i=0;i<number;++i)
+        {
+            int sockfd=events[i].data.fd;
+
+            Chanel* chanelnow=chanelpool[sockfd].get();
+            if(chanelnow)
+            {
+                chanelnow->Set_revents(events[i].events);
+                chanelnow->CallRevents();
+            }
+            else
+            {
+                //日志输出：曾有添加chanel到事件池中失败的历史
+            }
+        }
+    }
+}
+
+void EventLoop::StopLoop()
+{
+    stop=true;
 }
