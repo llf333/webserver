@@ -42,7 +42,7 @@ public:
 
     int Get_fd() {return fd;}
     Httpdata* Get_holder(){return holder;}
-    bool Get_isconn(){return is_coonect};
+    bool Get_isconn(){return is_connect;};
     bool IsEqualToLast();
 
 private:

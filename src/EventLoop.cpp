@@ -40,7 +40,7 @@ bool EventLoop::AddChanel(Chanel* CHNL,__uint32_t EV)
     // 并挂靠定时器
     if(CHNL->Get_isconn())
     {
-        httppool[fd]=std::unique_ptr<Httpdata>(CHNL->Get_holder());
+      //  httppool[fd]=std::unique_ptr<Httpdata>(CHNL->Get_holder());
         //暂时还没挂靠定时器
 
         {
