@@ -4,9 +4,9 @@
 
 #include<sys/epoll.h>
 #include<memory>
-#include"Other.h"
-#include"Chanel.h"
-#include"Timer.h"
+#include "Other.h"
+#include "Chanel.h"
+#include "Timer.h"
 
 class Httpdata;
 class Chanel;
@@ -34,13 +34,16 @@ private:
 public:
     EventLoop(bool ismain);
     ~EventLoop();
-    bool AddChanel(Chanel* CHNL,__uint32_t EV);
+    bool AddChanel(Chanel* CHNL);
     bool MODChanel(Chanel* CHNL,__uint32_t EV);
     bool DELChanel(Chanel* CHNL);
+    int Get_Num_Conn();
 
 
     void StartLoop();
     void StopLoop();
+
+    TimeWheel* get_theTimeWheel(){return wheelOFloop;}
 
 private:
     void ListenAndCall();

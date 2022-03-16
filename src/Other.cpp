@@ -10,6 +10,10 @@
 ///////////////
 
 std::chrono::seconds GlobalValue::client_header_timeout=std::chrono::seconds(60);
+int GlobalValue::TheMaxConnNumber=100000;
+int GlobalValue::CurrentUserNumber=0;
+
+
 bool ReadData(int fd,char* buffer);
 
 

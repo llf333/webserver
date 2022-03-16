@@ -4,7 +4,7 @@
 
 #include<iostream>
 
-Thread_Pool::Thread_Pool(size_t size) :stop_(false)
+Thread_Pool::Thread_Pool(size_t size) :stop_(false),sizeofpoll(size)
 {
     for(size_t i=0;i<size;++i)
         //括号里面的lambda表达式作为参数构造thread(thread的构造函数是可调用对象)（emplace_back与push_back的用法）。

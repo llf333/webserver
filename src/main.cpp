@@ -6,9 +6,11 @@
 #include"Chanel.h"
 #include"EventLoop.h"
 #include"Other.h"
-
+#include"Server.h"
 
 #include<signal.h>
+
+static SERVER* main_server;
 
 static void sig_thread(void* set)
 {
@@ -39,8 +41,6 @@ static void sig_thread(void* set)
 
         }
     }
-
-
 }
 
 int main(int argc,char* argv[])
@@ -76,6 +76,9 @@ int main(int argc,char* argv[])
     std::thread Sig_thread(sig_thread,&set);
     Sig_thread.detach();
 
+    alarm(10);
+
+    Thread_Pool*
 
 
     return 0;

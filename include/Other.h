@@ -18,6 +18,17 @@ class GlobalValue
 {
 public:
     static std::chrono::seconds client_header_timeout;
+    static int TheMaxConnNumber;
+    static int CurrentUserNumber;
+
+private:
+    static std::mutex usernumber_mtx;
+public:
+    static void Inc_Current_user_number()
+    {
+        std::unique_lock<std::mutex> locker(usernumber_mtx);
+        CurrentUserNumber++;
+    }
 };
 
 

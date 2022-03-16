@@ -17,15 +17,15 @@ EventLoop::~EventLoop()
 }
 
 
-bool EventLoop::AddChanel(Chanel* CHNL,__uint32_t EV)
+bool EventLoop::AddChanel(Chanel* CHNL)
 {
     int fd=CHNL->Get_fd();
-    epoll_event ev;
+    epoll_event ev{};
 
     bzero(&ev,sizeof ev);
 
     ev.data.fd=fd;
-    ev.events=EV | EPOLLET;
+    ev.events |= EPOLLET;
 
     if(epoll_ctl(epollfd,EPOLL_CTL_ADD,fd,&ev)==-1)
     {
@@ -142,4 +142,14 @@ void EventLoop::ListenAndCall()
 void EventLoop::StopLoop()
 {
     stop=true;
+}
+
+int EventLoop::Get_Num_Conn()
+{
+    int num=0;
+    {
+        std::unique_lock<std::mutex> locker(NUMmtx);
+        num=NUM_Conn;
+    }
+    return num;
 }

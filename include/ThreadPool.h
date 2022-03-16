@@ -27,6 +27,9 @@ public:
 
     template<class F,class ...Args>
     auto Add_task(F&& f,Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type> ;//这里要加typename，因为是嵌套从属类型，具体可以参考Effective C++
+
+public:
+    size_t sizeofpoll;
 };
 
 //模板函数要定义在头文件中,否则会出现连接错误。

@@ -8,9 +8,12 @@
 
 #include "ThreadPool.h"
 #include "Other.h"
+#include "Chanel.h"
+#include "EventLoop.h"
 
+class EventLoop;
 class Chanel;
-class Eventloop;
+class Thread_Pool;
 
 class SERVER
 {
@@ -21,11 +24,11 @@ private:
     int listen_fd;
     Chanel* listen_CH;
 
-    Eventloop* server_main_Reactor;
-    std::vector<std::shared_ptr<Eventloop>> SubReactors;//这里使用智能指针在析构时自动管理子Reactor
+    EventLoop* server_main_Reactor;
+    std::vector<std::shared_ptr<EventLoop>> SubReactors;//这里使用智能指针在析构时自动管理子Reactor
     Thread_Pool* server_thread_pool;
 
-    SERVER(int pot, Eventloop* mainreactor, Thread_Pool* T_P);
+    SERVER(int pot, EventLoop* mainreactor, Thread_Pool* T_P);
     ~SERVER();
 
 public:
@@ -35,7 +38,7 @@ public:
     void Server_Start();
     void Server_Stop();
 
-    SERVER* Get_the_service(int pot, Eventloop* Main_R, Thread_Pool* T_P)
+    SERVER* Get_the_service(int pot, EventLoop* Main_R, Thread_Pool* T_P)
     {
         if(service!= nullptr) return service;
         else
@@ -44,6 +47,10 @@ public:
             return service;
         }
     }
+
+private:
+    void ERRisComing();
+    void CONNisComing();
 };
 
 SERVER* SERVER::service= nullptr;
