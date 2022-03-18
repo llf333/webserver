@@ -25,7 +25,7 @@ bool EventLoop::AddChanel(Chanel* CHNL)
     bzero(&ev,sizeof ev);
 
     ev.data.fd=fd;
-    ev.events |= EPOLLET;
+    ev.events = CHNL->Get_events() | EPOLLET;//bug!!!!! 得获取chanel的事件再并
 
     if(epoll_ctl(epollfd,EPOLL_CTL_ADD,fd,&ev)==-1)
     {
@@ -45,6 +45,7 @@ bool EventLoop::AddChanel(Chanel* CHNL)
 
         {
             std::unique_lock<std::mutex> locker(NUMmtx);
+            std::cout<<NUM_Conn<<std::endl;
             NUM_Conn++;
         }
     }

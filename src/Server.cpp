@@ -1,12 +1,11 @@
-//
 // Created by llf on 2022/3/12.
-//
-
 
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include "Server.h"
 
+
+SERVER* SERVER::service= nullptr;//定义必须写在.cpp文件中
 //2022-3-14
 SERVER::SERVER(int pot, EventLoop* Main_R, Thread_Pool* T_P)
                 :port(pot),listen_fd(BindAndListen(port)),
@@ -68,6 +67,9 @@ void SERVER::CONNisComing()
     while(true)
     {
         int connfd=accept(listen_fd,reinterpret_cast<struct sockaddr*>(&client_address),&client_addrlen);
+
+        if(connfd>0) std::cout<<"get a new conn"<<std::endl;
+
         if(connfd<0)
         {
             if(errno!=EAGAIN && errno!=EWOULDBLOCK)

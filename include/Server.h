@@ -15,10 +15,13 @@ class EventLoop;
 class Chanel;
 class Thread_Pool;
 
+
+
 class SERVER
 {
 private:
     static SERVER* service;//使用单例饿汉模式，注意全局只能初始化一次，饿汉模式线程不安全
+    SERVER(int pot, EventLoop* mainreactor, Thread_Pool* T_P);
 
     int port;//这里刻意地调整了一下顺序以防出错
     int listen_fd;
@@ -28,17 +31,14 @@ private:
     std::vector<std::shared_ptr<EventLoop>> SubReactors;//这里使用智能指针在析构时自动管理子Reactor
     Thread_Pool* server_thread_pool;
 
-    SERVER(int pot, EventLoop* mainreactor, Thread_Pool* T_P);
-    ~SERVER();
-
 public:
     std::vector<int> timeWheel_PipeOfWrite{};
-
 public:
     void Server_Start();
     void Server_Stop();
+    ~SERVER();
 
-    SERVER* Get_the_service(int pot, EventLoop* Main_R, Thread_Pool* T_P)
+    static SERVER* Get_the_service(int pot, EventLoop* Main_R, Thread_Pool* T_P)
     {
         if(service!= nullptr) return service;
         else
@@ -53,6 +53,6 @@ private:
     void CONNisComing();
 };
 
-SERVER* SERVER::service= nullptr;
+
 
 #endif //WEBSERVER_SERVER_H

@@ -10,7 +10,6 @@
 
 #include<signal.h>
 
-static SERVER* main_server;
 
 static void sig_thread(void* set)
 {
@@ -68,7 +67,7 @@ int main(int argc,char* argv[])
     sigaddset(&set,SIGTERM);
     sigaddset(&set,SIGPIPE);
 
-    if(!pthread_sigmask(SIG_SETMASK,&set,NULL))
+    if(pthread_sigmask(SIG_SETMASK,&set,NULL)!=0)
     {
         std::cout<<"Failed to mask the signal in the main function ! "<<std::endl;
         return 0;
@@ -76,10 +75,16 @@ int main(int argc,char* argv[])
     std::thread Sig_thread(sig_thread,&set);
     Sig_thread.detach();
 
+    Thread_Pool* main_thread_pool=new Thread_Pool(std::get<1>(*res));
+    EventLoop* main_reactor=new EventLoop(true);
+
     alarm(10);
 
-    Thread_Pool*
+    SERVER* main_server=SERVER::Get_the_service(std::get<0>(*res),main_reactor,main_thread_pool);
 
+    main_server->Server_Start();
+
+    main_reactor->StartLoop();
 
     return 0;
 }
