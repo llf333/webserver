@@ -40,12 +40,12 @@ bool EventLoop::AddChanel(Chanel* CHNL)
     // 并挂靠定时器
     if(CHNL->Get_isconn())
     {
-      //  httppool[fd]=std::unique_ptr<Httpdata>(CHNL->Get_holder());
-        //暂时还没挂靠定时器
+        httppool[fd]=std::shared_ptr<HttpData>(CHNL->Get_holder());
+        //应该把httpdata和事件器关联起来
+        wheelOFloop->TimeWheel_insert_Timer(GlobalValue::HttpConnectTime,CHNL->Get_holder());
 
         {
             std::unique_lock<std::mutex> locker(NUMmtx);
-            std::cout<<NUM_Conn<<std::endl;
             NUM_Conn++;
         }
     }

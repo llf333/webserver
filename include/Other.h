@@ -20,6 +20,9 @@ public:
     static std::chrono::seconds client_header_timeout;
     static int TheMaxConnNumber;
     static int CurrentUserNumber;
+    static int BufferMaxSize;
+
+    static std::chrono::seconds HttpConnectTime;
 
 private:
     static std::mutex usernumber_mtx;
@@ -32,8 +35,7 @@ public:
 };
 
 
-
-bool ReadData(int fd,char* buffer);
+int ReadData(int fd,std::string &buffer,bool &is_disconn);//返回读了多少数据
 
 /*!
  * 生成全局唯一的logger对象

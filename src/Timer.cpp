@@ -35,7 +35,7 @@ TimeWheel::~TimeWheel()
     close(tick_d[1]);
 }
 
-Timer* TimeWheel::TimeWheel_insert_Timer(std::chrono::seconds timeout)
+Timer* TimeWheel::TimeWheel_insert_Timer(std::chrono::seconds timeout,HttpData* holder)
 {
     if(timeout<std::chrono::seconds(0)) return nullptr;
 
@@ -49,6 +49,10 @@ Timer* TimeWheel::TimeWheel_insert_Timer(std::chrono::seconds timeout)
     Timer *Temp;
     Temp = new Timer(pos, cycle);
     slot[pos].push_back(Temp);
+
+    //http事件挂靠定时器
+    holder->Set_timer(Temp);
+
     return Temp;
 }
 
@@ -87,9 +91,10 @@ bool TimeWheel::TimerWheel_Adjust_Timer(Timer* timer,std::chrono::seconds timeou
 void TimeWheel::tick()
 {
     //先把管道里的数据读了，堵住了
-    char buffer[1024];
-    bool ret=ReadData(tick_d[0],buffer);
-    if(!ret)
+    std::string buffer;
+    bool dis_conn=false;
+    int ret=ReadData(tick_d[0],buffer,dis_conn);
+    if(ret<=0)
     {
         //打印失败日志
     }

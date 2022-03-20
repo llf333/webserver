@@ -68,8 +68,6 @@ void SERVER::CONNisComing()
     {
         int connfd=accept(listen_fd,reinterpret_cast<struct sockaddr*>(&client_address),&client_addrlen);
 
-        if(connfd>0) std::cout<<"get a new conn"<<std::endl;
-
         if(connfd<0)
         {
             if(errno!=EAGAIN && errno!=EWOULDBLOCK)
@@ -115,8 +113,9 @@ void SERVER::CONNisComing()
 
 
         //建立好新连接之后，把任务派发给子Reactor（派发形式是找连接数量最少的子Reactor）
-        //注意这里还没加入子Reactor的httpdata池中，也没设置holder
-        std::unique_ptr<Chanel> newconn(new Chanel(connfd, true));
+        //注意这里还没加入子Reactor的httpdata池中，也没设置holder——已经在addchanel中加入了
+        Chanel* newconn(new Chanel(connfd, true));
+
 
         int least_conn_num=SubReactors[0]->Get_Num_Conn(),idx=0;
         for(int i=0;i<SubReactors.size();++i)
@@ -127,8 +126,10 @@ void SERVER::CONNisComing()
                 idx=i;
             }
         }
+        HttpData* newholder=new HttpData(newconn,SubReactors[idx].get());
+        newconn->Set_holder(newholder);
 
-        SubReactors[idx]->AddChanel(newconn.get());
+        SubReactors[idx]->AddChanel(newconn);
 
         Getlogger()->info("SubReactor {} add a connect :{}",idx,connfd);
     }

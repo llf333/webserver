@@ -14,6 +14,7 @@
 class EventLoop;
 class Chanel;
 class Thread_Pool;
+class HttpData;
 
 
 

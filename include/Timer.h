@@ -6,9 +6,10 @@
 #include<list>
 #include<vector>
 #include "Other.h"
+#include "HttpData.h"
 
 class Chanel;
-
+class HttpData;
 /*!
  * @brief 定时器
  * @FuncofTimeUp 超时回调函数
@@ -61,7 +62,7 @@ public:
     TimeWheel(const TimeWheel& wheel) =delete;
     TimeWheel& operator=(const TimeWheel& wheel) =delete;
     ~TimeWheel();
-    Timer* TimeWheel_insert_Timer(std::chrono::seconds timeout);
+    Timer* TimeWheel_insert_Timer(std::chrono::seconds timeout,HttpData* holder);
     bool TimerWheel_Remove_Timer(Timer* timer);
     bool TimerWheel_Adjust_Timer(Timer* timer,std::chrono::seconds timeout);
 

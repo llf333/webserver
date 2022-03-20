@@ -11,23 +11,25 @@ Thread_Pool::Thread_Pool(size_t size) :stop_(false),sizeofpoll(size)
     pool.emplace_back([this]() {
         while(true)
         {
+            //取任务
             std::function<void()> tsk;
             {
                 std::unique_lock<std::mutex> lock(this->mtx);
 
                 if(this->stop_&&this->task_que.empty()) return ;//如果线程池停止，且任务队列为空，则终止线程
 
-                while(this->task_que.empty())//当线程池停止了或者任务队列为空，则一直阻塞
+                while(this->task_que.empty())//当线程池停止了或者任务队列为空，则一直阻塞,注意使用while，防止虚假唤醒
                     cv.wait(lock);
 
                 //析构函数唤醒后退出
                 if(this->stop_&&this->task_que.empty()) return ;//如果线程池停止，且任务队列为空，则终止线程
 
-                tsk=std::move(this->task_que.front());
+                tsk=std::move(this->task_que.front());//move更快
                 this->task_que.pop();
             }
-            tsk();
 
+            //执行任务
+            tsk();
         }
     });
 }

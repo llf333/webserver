@@ -7,6 +7,7 @@
 #include"EventLoop.h"
 #include"Other.h"
 #include"Server.h"
+#include"HttpData.h"
 
 #include<signal.h>
 

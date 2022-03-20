@@ -13,9 +13,46 @@ std::chrono::seconds GlobalValue::client_header_timeout=std::chrono::seconds(60)
 int GlobalValue::TheMaxConnNumber=100000;
 int GlobalValue::CurrentUserNumber=0;
 std::mutex GlobalValue::usernumber_mtx{};
+std::chrono::seconds GlobalValue::HttpConnectTime=std::chrono::seconds(60);
+int GlobalValue::BufferMaxSize=2048;
 
 
-bool ReadData(int fd,char* buffer);
+int ReadData(int fd,std::string &read_buffer,bool& is_disconn)
+{
+    int read_sum=0;
+    //因为epoll是ET模式，所以要一次性将数据读完
+    while(true)
+    {
+        /*!
+         对非阻塞I/O：
+         1.若当前没有数据可读，函数会立即返回-1，同时errno被设置为EAGAIN或EWOULDBLOCK。
+           若被系统中断打断，返回值同样为-1,但errno被设置为EINTR。对于被系统中断的情况，
+           采取的策略为重新再读一次，因为我们无法判断缓冲区中是否有数据可读。然而，对于
+           EAGAIN或EWOULDBLOCK的情况，就直接返回，因为操作系统明确告知了我们当前无数据
+           可读。
+         2.若当前有数据可读，那么recv函数并不会立即返回，而是开始从内核中将数据拷贝到用
+           户区，这是一个同步操作，返回值为这一次函数调用成功拷贝的字节数。所以说，非阻
+           塞I/O本质上还是同步的，并不是异步的。
+         */
+
+        char buffer[GlobalValue::BufferMaxSize];
+        memset(buffer,'\0',sizeof buffer);//最后一个字符是‘\0’
+        int ret= recv(fd,buffer,(sizeof buffer)-1,0);
+        if(ret<0)
+        {
+            if(errno == EWOULDBLOCK || errno == EAGAIN) return read_sum;
+            else if(errno == EINTR) continue;
+            else
+            {
+                Getlogger()->error("ReadData failed to read data");
+                is_disconn=true;
+                break;
+            }
+        }
+        read_sum+=ret;
+    }
+    return read_sum;
+}
 
 
 std::optional<std::tuple<int,int,std::string>> AnalyseCommandLine(int argc,char* argv[])
@@ -124,7 +161,4 @@ int setnonblocking(int fd)
     return 0;
 }
 
-bool ReadData(int fd,char* buffer)
-{
-    return true;
-}
+

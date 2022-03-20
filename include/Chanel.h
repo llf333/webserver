@@ -8,7 +8,7 @@
 #include<Other.h>
 #include<EventLoop.h>
 
-class Httpdata;
+class HttpData;
 
 class Chanel{
 private:
@@ -18,7 +18,7 @@ private:
     __uint32_t revents;//已就绪的事件集
     __uint32_t last_event;//记录上一次的防止重复修改
 
-    Httpdata* holder;
+    HttpData* holder;
 
     using CALLBACK=std::function<void()>;
     CALLBACK read_handle;
@@ -41,7 +41,10 @@ public:
     void Set_revents(__uint32_t revnt) {revents=revnt;}
 
     int Get_fd() {return fd;}
+
     Httpdata* Get_holder(){return holder;}
+    void Set_holder(Httpdata* holder_){holder=holder_;}
+
     bool Get_isconn(){return is_connect;};
     bool IsEqualToLast();
 

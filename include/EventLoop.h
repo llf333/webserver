@@ -8,7 +8,7 @@
 #include "Chanel.h"
 #include "Timer.h"
 
-class Httpdata;
+class HttpData;
 class Chanel;
 class TimeWheel;
 
@@ -25,7 +25,7 @@ private:
     static const int Epoll_timeout=1;//如果设置为0，理论上很占cpu，因为内核会一直调用epoll，但还未测试
     epoll_event events[PerEpollMaxEvent];
     std::unique_ptr<Chanel> chanelpool[PerEpollMaxEvent];
- //   std::unique_ptr<Httpdata> httppool[PerEpollMaxEvent];
+    std::shared_ptr<HttpData> httppool[PerEpollMaxEvent];
 
     TimeWheel* wheelOFloop;
 
