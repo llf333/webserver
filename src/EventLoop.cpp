@@ -36,18 +36,22 @@ bool EventLoop::AddChanel(Chanel* CHNL)
     //成功后，将该chanel添加到池里面
     chanelpool[fd]=std::unique_ptr<Chanel>(CHNL);
 
-    //如果还是连接socket,则将http数据存入池中，
+    //如果还是连接socket,则将http数据存入池中
     // 并挂靠定时器
     if(CHNL->Get_isconn())
     {
-        httppool[fd]=std::shared_ptr<HttpData>(CHNL->Get_holder());
-        //应该把httpdata和事件器关联起来
-        wheelOFloop->TimeWheel_insert_Timer(GlobalValue::HttpConnectTime,CHNL->Get_holder());
-
+        if(CHNL->Get_holder())
         {
-            std::unique_lock<std::mutex> locker(NUMmtx);
-            NUM_Conn++;
+            httppool[fd]=std::shared_ptr<HttpData>(CHNL->Get_holder());
+            //应该把httpdata和timer关联起来
+            wheelOFloop->TimeWheel_insert_Timer(GlobalValue::HttpHEADTime,CHNL->Get_holder());
+            {
+                std::unique_lock<std::mutex> locker(NUMmtx);
+                NUM_Conn++;
+            }
         }
+        else Getlogger()->error("fd {} is connfd ,but it not has a holder",CHNL->Get_fd());
+
     }
 
     return true;

@@ -27,11 +27,16 @@ private:
 
 public:
     size_t Timer_GetPos()   {return PosInWheel;}
+
     size_t Timer_GetTurns() {return Turns;}
+
     void Timer_TurnsDecline() {Turns--;}
+
     Timer(size_t pos,size_t turns);
 
     friend class TimeWheel;
+
+    void Register_CallbackFunc(CALLBACK func) {FuncOfTimeUp=func;}
 
 private:
     void ExecuteCallbackFunc();//之所以是私有的，因为只能通过友元时间轮来调用

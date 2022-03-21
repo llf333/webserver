@@ -126,6 +126,7 @@ void SERVER::CONNisComing()
                 idx=i;
             }
         }
+
         HttpData* newholder=new HttpData(newconn,SubReactors[idx].get());
         newconn->Set_holder(newholder);
 

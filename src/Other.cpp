@@ -10,10 +10,12 @@
 ///////////////
 
 std::chrono::seconds GlobalValue::client_header_timeout=std::chrono::seconds(60);
+
 int GlobalValue::TheMaxConnNumber=100000;
 int GlobalValue::CurrentUserNumber=0;
 std::mutex GlobalValue::usernumber_mtx{};
-std::chrono::seconds GlobalValue::HttpConnectTime=std::chrono::seconds(60);
+std::chrono::seconds GlobalValue::HttpHEADTime=std::chrono::seconds(60);
+std::chrono::seconds GlobalValue::HttpPostBodyTime=std::chrono::seconds(60);
 int GlobalValue::BufferMaxSize=2048;
 
 

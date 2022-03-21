@@ -50,8 +50,12 @@ Timer* TimeWheel::TimeWheel_insert_Timer(std::chrono::seconds timeout,HttpData* 
     Temp = new Timer(pos, cycle);
     slot[pos].push_back(Temp);
 
-    //http事件挂靠定时器
-    holder->Set_timer(Temp);
+    //http事件挂靠定时器,并设置超时回调函数
+    if(holder)
+    {
+        Temp->Register_CallbackFunc([=]{holder->TimerTimeoutCallback();});
+        holder->Set_timer(Temp);
+    }
 
     return Temp;
 }

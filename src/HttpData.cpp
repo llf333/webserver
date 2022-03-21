@@ -50,7 +50,8 @@ void HttpData::state_machine()
                         return;
                     case header_parse_error:
                         Getlogger()->error("http header parse error, fd:{}",http_cha->Get_fd());
-                        return ;
+                        error=true;
+                        break;
                     case header_is_ok:
                         main_state=check_headerIsOk;
                         break;
@@ -59,11 +60,28 @@ void HttpData::state_machine()
 
             case check_headerIsOk:
             {
-                //post要分析数据是否完整
+                //post要判断数据是否完整
                 //get和head不用
+                if(mp["method"]=="POST" || mp["method"]=="post") main_state=check_body;
+                else main_state=check_state_analyse_content;
             }break;
 
-            case check_state_content:
+            case check_body:
+            {
+                //前后两个报文时间不能超过xxx，因此该mod timer
+                belong_sub->get_theTimeWheel()->TimerWheel_Adjust_Timer(http_timer,GlobalValue::HttpPostBodyTime);
+                if(mp.count("Content-length"))//如果找到了content-length字段
+                {
+
+                }
+                else//没找到表示出错了，因为content-length字段是在header中
+                {
+
+                }
+
+            }
+
+            case check_state_analyse_content:
             {
 
             }break;
@@ -83,6 +101,7 @@ sub_state_ParseHTTP HttpData::parse_requestline()
     if(pos == std::string::npos) return sub_state_ParseHTTP::requestline_data_is_not_complete;
 
     requestline=read_buffer.substr(0,pos);
+    read_buffer=read_buffer.substr(pos);//删除已提取的数据，注意：没删除\r\n
 
     std::regex reg(R"(^(POST|GET|HEAD|pos|get|head)\s(\S*)\s((HTTP|http)\/\d\.\d)$)");
     std::smatch res;
@@ -102,7 +121,9 @@ sub_state_ParseHTTP HttpData::parse_requestline()
 
 sub_state_ParseHTTP HttpData::parse_header()
 {
+    auto deal_with_perline= [=] ->bool {
 
+    };
 }
 
 void HttpData::write_and_send(bool error)

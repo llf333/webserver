@@ -14,7 +14,7 @@ class EventLoop;
 class Timer;
 
 //主状态机
-enum main_State_ParseHTTP{check_state_requestline, check_state_header, check_headerIsOk, check_body, check_state_content};
+enum main_State_ParseHTTP{check_state_requestline, check_state_header, check_headerIsOk, check_body, check_state_analyse_content};
 
 //从状态机
 enum sub_state_ParseHTTP{
@@ -46,7 +46,11 @@ public:
     ~HttpData();
     void state_machine();
 
-    void Set_timer(Timer* timer_){http_timer=timer_;}
+    void Set_timer(Timer* timer_) {http_timer=timer_;}//还要设置定时器的超时回调函数
+
+    //定时器超时回调函数
+    void TimerTimeoutCallback();
+
 private:
     sub_state_ParseHTTP parse_requestline();
     sub_state_ParseHTTP parse_header();
@@ -58,6 +62,8 @@ private:
     void call_back_out();
     void call_back_error();
     void call_back_rdhub();
+
+
 
 
 };

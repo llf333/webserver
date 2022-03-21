@@ -18,11 +18,13 @@ class GlobalValue
 {
 public:
     static std::chrono::seconds client_header_timeout;
+
     static int TheMaxConnNumber;
     static int CurrentUserNumber;
     static int BufferMaxSize;
 
-    static std::chrono::seconds HttpConnectTime;
+    static std::chrono::seconds HttpHEADTime;
+    static std::chrono::seconds HttpPostBodyTime;
 
 private:
     static std::mutex usernumber_mtx;
