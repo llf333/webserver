@@ -114,7 +114,15 @@ void SERVER::CONNisComing()
 
         //建立好新连接之后，把任务派发给子Reactor（派发形式是找连接数量最少的子Reactor）
         //注意这里还没加入子Reactor的httpdata池中，也没设置holder——已经在addchanel中加入了
+
         Chanel* newconn(new Chanel(connfd, true));
+        /*!
+            Http连接的sokcet需要监听可读、可写、断开连接以及错误事件。
+            但是需要注意的是，不要一开始就注册可写事件，因为只要fd只要不是阻塞的它就是可写的。
+            因此，需要在完整读取了客户端的数据之后再注册可写事件，否则会一直触发可写事件。
+            这里connfd_channel的生命周期交由SubReactor管理。
+         */
+        newconn->Set_events(EPOLLIN | EPOLLRDHUP | EPOLLERR);
 
 
         int least_conn_num=SubReactors[0]->Get_Num_Conn(),idx=0;

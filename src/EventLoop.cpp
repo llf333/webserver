@@ -90,12 +90,15 @@ bool EventLoop::DELChanel(Chanel* CHNL)
     if(epoll_ctl(epollfd,EPOLL_CTL_DEL,fd,&ev)==-1)
     {
         //日志输入删除失败
+        Getlogger()->error("failed to delete fd in epoll");
         return false;
     }
 
     if(CHNL->Get_holder())
     {
         //删除http池中的数据和定时器
+        get_theTimeWheel()->TimerWheel_Remove_Timer(CHNL->Get_holder()->Get_timer());
+        httppool[fd]=nullptr;
     }
     chanelpool[fd].reset(nullptr);
     return true;
@@ -119,11 +122,14 @@ void EventLoop::ListenAndCall()
         if(number<0&& errno !=EINTR)
         {
             //日志输出epoll失败
+            Getlogger()->debug("System call interrupts epoll");
             //这里不对系统调用做处理
+            continue;
         }
         if(number==0)
         {
             //日志输出epoll超时
+            Getlogger()->debug("epoll timeout");
             continue;
         }
         for(int i=0;i<number;++i)
@@ -139,6 +145,7 @@ void EventLoop::ListenAndCall()
             else
             {
                 //日志输出：曾有添加chanel到事件池中失败的历史
+                Getlogger()->debug("not get the correct chanel");
             }
         }
     }

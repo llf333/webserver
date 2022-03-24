@@ -40,6 +40,7 @@ public:
 
 
 int ReadData(int fd,std::string &buffer,bool &is_disconn);//返回读了多少数据
+int WriteData(int fd,std::string& buffer,bool& full);//返回写了多少数据，并随时判断发送缓冲区是否已满
 
 /*!
  * 生成全局唯一的logger对象

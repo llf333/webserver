@@ -16,7 +16,7 @@ int GlobalValue::CurrentUserNumber=0;
 std::mutex GlobalValue::usernumber_mtx{};
 std::chrono::seconds GlobalValue::HttpHEADTime=std::chrono::seconds(60);
 std::chrono::seconds GlobalValue::HttpPostBodyTime=std::chrono::seconds(60);
-std::chrono::seconds GlobalValue::keep_alive_time=std::chrono::seconds(60);
+std::chrono::seconds GlobalValue::keep_alive_time=std::chrono::seconds(180);
 int GlobalValue::BufferMaxSize=2048;
 
 std::string GetTime()
@@ -71,6 +71,45 @@ int ReadData(int fd,std::string &read_buffer,bool& is_disconn)
     }
     return read_sum;
 }
+
+int WriteData(int fd,std::string& buffer,bool& full)
+{
+    int write_once=0;
+    int write_sum=0;
+    const char* wait_to_send= nullptr;
+    wait_to_send=buffer.c_str();//c_str()后末尾会加一个'\0'
+
+    int num=sizeof buffer + 1;
+
+    while(num)
+    {
+        write_once=send(fd,wait_to_send,num,0);
+        if(write_once < 0)
+        {
+            if(errno == EINTR) continue;//被系统调用打断
+
+            else if(errno == EAGAIN || errno == EWOULDBLOCK)
+            {
+                full=true;
+                return write_sum;
+            }
+            else
+            {
+                Getlogger()->error("failed to write data to socket");
+                return -1;
+            }
+            write_sum+=write_once;
+            num-=write_once;
+            wait_to_send+=write_once;//向后移动
+        }
+    }
+
+    if(buffer.size()+1 == write_sum) buffer.clear();
+    else buffer=buffer.substr(write_sum);
+
+    return write_sum;
+}
+
 
 
 std::optional<std::tuple<int,int,std::string>> AnalyseCommandLine(int argc,char* argv[])

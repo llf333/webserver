@@ -46,6 +46,7 @@ public:
     ~HttpData();
     void state_machine();
 
+    Timer* Get_timer(){return http_timer;}
     void Set_timer(Timer* timer_) {http_timer=timer_;}//还要设置定时器的超时回调函数
 
     //定时器超时回调函数
@@ -61,7 +62,10 @@ private:
     sub_state_ParseHTTP Analyse_GetOrHead();
     sub_state_ParseHTTP Analyse_Post();
 
-    void Write_Response_GeneralData();
+    void Write_Response_GeneralData();//报文通用部分，包括：版本、结果、Server和连接状态
+
+    void Reset_Http_events(bool in);
+    void Reset();
 
     //四种回调函数
     void call_back_in();

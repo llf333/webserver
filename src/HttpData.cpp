@@ -220,12 +220,73 @@ sub_state_ParseHTTP HttpData::parse_header()
         if(!deal_with_perline(newline)) return header_parse_error;//格式出错
     }
 }
+
 void HttpData::Http_send()
 {
+    int fd=http_cha->Get_fd();
+    int data_sum=write_buffer.size()+1;
+    int write_sum=0;
+    bool full=false;//表示发送缓冲区是否已满
+
+    while(write_sum<data_sum)
+    {
+         int ret=WriteData(fd,write_buffer,full);
+         if(ret==-1)
+         {
+             //写数据出错，断开连接
+             call_back_rdhub();
+             return;
+         }
+
+         if( full && write_sum < data_sum)//如果发送缓冲区满了，但是数据还没发送完，则重新注册Epollout事件，等待下次读入。
+         {
+             //注册
+             //删除定时器，防止超时
+             //设置自己的定时器为空
+             //返回
+         }
+         write_sum+=ret;
+    }
+    //发送完数据要重新注册Epollin，
+    Reset_Http_events(true);
+
+    //重置
+    Reset();
 
 }
 
+void HttpData::Reset_Http_events(bool in)//true 表示注册Epollin； false 表示注册Epollout
+{
+    __uint32_t evnt;
+    if(in) evnt=EPOLLIN | EPOLLRDHUP | EPOLLERR;
+    else evnt=EPOLLOUT | EPOLLRDHUP | EPOLLERR;
 
+    http_cha->Set_events(evnt);
+    belong_sub->MODChanel(http_cha,evnt);
+    return ;
+}
+
+void HttpData::Reset()
+{
+    //如果是长连接，则不断开连接，并更改超时时间
+    if(mp["Connection"]=="keep-alive" || mp["Connection"]=="Keep-Alive")
+    {
+        auto timeout=GlobalValue::keep_alive_time;
+        if(!Get_timer()) belong_sub->get_theTimeWheel()->TimeWheel_insert_Timer(timeout,this);
+        else belong_sub->get_theTimeWheel()->TimerWheel_Adjust_Timer(Get_timer(),timeout);
+    }
+    else
+    {
+        call_back_rdhub();
+        return ;
+    }
+
+    read_buffer.clear();
+    write_buffer.clear();
+    mp.clear();
+    main_state=main_State_ParseHTTP::check_state_requestline;
+
+}
 
 void HttpData::Set_HttpErrorMessage(int fd,int erro_num,std::string msg)
 {
@@ -253,9 +314,6 @@ void HttpData::Set_HttpErrorMessage(int fd,int erro_num,std::string msg)
 }
 
 
-
-
-
 void HttpData::call_back_in()
 {
     //读数据到buffer中，然后利用状态机解析
@@ -280,12 +338,12 @@ void HttpData::call_back_in()
 
 sub_state_ParseHTTP HttpData::Analyse_GetOrHead()
 {
-
+    Write_Response_GeneralData();
 }
 
 sub_state_ParseHTTP HttpData::Analyse_Post()
 {
-
+    Write_Response_GeneralData();
 }
 
 void HttpData::Write_Response_GeneralData()
