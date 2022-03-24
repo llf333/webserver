@@ -20,7 +20,7 @@ enum main_State_ParseHTTP{check_state_requestline, check_state_header, check_hea
 enum sub_state_ParseHTTP{
     requestline_data_is_not_complete, requestline_parse_error, requestline_is_ok,//这一行表示的是解析请求行的状态
     header_data_is_not_complete, header_parse_error, header_is_ok,//这一行表示的是解析首部行的状态
-
+    analyse_error,analyse_success
 };
 
 class HttpData
@@ -54,8 +54,14 @@ public:
 private:
     sub_state_ParseHTTP parse_requestline();
     sub_state_ParseHTTP parse_header();
+    void Set_HttpErrorMessage(int fd,int erro_num,std::string msg);
 
-    void write_and_send(bool error);
+    void Http_send();
+
+    sub_state_ParseHTTP Analyse_GetOrHead();
+    sub_state_ParseHTTP Analyse_Post();
+
+    void Write_Response_GeneralData();
 
     //四种回调函数
     void call_back_in();

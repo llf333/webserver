@@ -21,9 +21,9 @@ HttpData::~HttpData()
 
 void HttpData::state_machine()
 {
-    bool stop=false,error=false;
+    bool finish=false,error=false;
 
-    while(!stop && !error)
+    while(!finish && !error)
     {
         switch (main_state) {
             case check_state_requestline:
@@ -31,9 +31,9 @@ void HttpData::state_machine()
                 sub_state=parse_requestline();
                 switch (sub_state) {
                     case requestline_data_is_not_complete:
-                        return ;
+                        return ;//直接return表示不发送数据
                     case requestline_parse_error:
-                        Getlogger()->error("http requestline parse error, fd : {}", http_cha->Get_fd());
+                        Set_HttpErrorMessage(http_cha->Get_fd(),400,"Bad Request: Request line has syntax error");
                         error=true;
                         break;
                     case requestline_is_ok:
@@ -49,7 +49,7 @@ void HttpData::state_machine()
                     case header_data_is_not_complete:
                         return;
                     case header_parse_error:
-                        Getlogger()->error("http header parse error, fd:{}",http_cha->Get_fd());
+                        Set_HttpErrorMessage(http_cha->Get_fd(),400,"Bad Request: Header line has syntax error");
                         error=true;
                         break;
                     case header_is_ok:
@@ -66,31 +66,65 @@ void HttpData::state_machine()
                 else main_state=check_state_analyse_content;
             }break;
 
-            case check_body:
+            case check_body://post报文会在请求头部中多Content-Type和Content-Length两个字段。
             {
                 //前后两个报文时间不能超过xxx，因此该mod timer
                 belong_sub->get_theTimeWheel()->TimerWheel_Adjust_Timer(http_timer,GlobalValue::HttpPostBodyTime);
-                if(mp.count("Content-length"))//如果找到了content-length字段
+                if(mp.count("Content-length")||mp.count("content-length"))//如果找到了content-length字段
                 {
+                    //找到了之后判断数据包的大小，因为在解析header时留下了一个/r/n，因此数据包的实际大小应该比数值大2
+                    //如果小于，则证明还没接收完整，返回，等待下一次接收
+                    std::string length="0";
+                    if(mp.count("Content-length"))  length=mp["Content-length"];
+                    if(mp.count("content-length"))  length=mp["content-length"];
+                    int content_length=std::stoi(length);
 
+                    if(read_buffer.size() < content_length+2) return ;//数据还没接收完整
+                    else main_state=check_state_analyse_content;//接收完整则切换到分析状态
                 }
-                else//没找到表示出错了，因为content-length字段是在header中
+                else//没找到表示出错了
                 {
-
+                    Set_HttpErrorMessage(http_cha->Get_fd(), 400, "Bad Request: Lack of argument (Content-Length)");
+                    error=true;
+                    break;
                 }
-
-            }
-
-            case check_state_analyse_content:
-            {
-
             }break;
 
+            case check_state_analyse_content://分析并填充发送报文
+            {
+                if(mp.count("method"))
+                {
+                    if(mp["method"]=="post" || mp["method"]=="Post")
+                        sub_state=HttpData::Analyse_Post();
+                    else if(mp["method"]=="get" || mp["method"]=="Get" || mp["method"]=="head" || mp["method"]=="Head")
+                        sub_state=HttpData::Analyse_GetOrHead();
+                    else return ;//其他方法暂时不做处理
+
+
+                    if(sub_state == analyse_error)
+                    {
+                        Set_HttpErrorMessage(http_cha->Get_fd(),500,"Internal Server Error: analyse data not success");
+                        error=true;
+                        break;
+                    }
+
+                    if(sub_state == analyse_success)
+                    {
+                        finish=true;
+                        break;
+                    }
+                }
+
+                else
+                {
+                    Getlogger()->error("http data not found method");
+                    return ;
+                }
+            }break;
         }
     }
 
-    write_and_send(error);
-
+    Http_send();
 }
 
 sub_state_ParseHTTP HttpData::parse_requestline()
@@ -186,10 +220,41 @@ sub_state_ParseHTTP HttpData::parse_header()
         if(!deal_with_perline(newline)) return header_parse_error;//格式出错
     }
 }
-void HttpData::write_and_send(bool error)
+void HttpData::Http_send()
 {
 
 }
+
+
+
+void HttpData::Set_HttpErrorMessage(int fd,int erro_num,std::string msg)
+{
+    Getlogger()->error("Http erro {} from {},the msg is {}:",erro_num,fd,msg);
+    //设置发送缓冲区的数据，不发送，由Http_send函数发送
+
+    //编写body*************暂时还不知道为啥是这个格式
+    std::string  response_body{};
+    response_body += "<html><title>错误</title>";
+    response_body += "<body bgcolor=\"ffffff\">";
+    response_body += std::to_string(erro_num)+msg;
+    response_body += "<hr><em> Hust---LLF Server</em>\n</body></html>";
+
+    //编写header
+    std::string response_header{};
+    response_header += "Http/1.1" + std::to_string(erro_num) + msg + "\r\n";
+    response_header += "Date: " + GetTime() + "\r\n";
+    response_header += "Server: Hust---LLF\r\n";
+    response_header += "Content-Type: text/html\r\n";
+    response_header += "Content-length: " + std::to_string(response_body.size())+"\r\n";
+    response_header += "\r\n";
+
+    write_buffer=response_body+response_header;
+    return ;
+}
+
+
+
+
 
 void HttpData::call_back_in()
 {
@@ -212,3 +277,38 @@ void HttpData::call_back_in()
     state_machine();
 
 }
+
+sub_state_ParseHTTP HttpData::Analyse_GetOrHead()
+{
+
+}
+
+sub_state_ParseHTTP HttpData::Analyse_Post()
+{
+
+}
+
+void HttpData::Write_Response_GeneralData()
+{
+    std::string status_line = mp["version"] + "200 OK\r\n";
+    std::string header_line{};
+    header_line += "Date: "+ GetTime() + "\r\n";
+    header_line += "Server: Hust---LLF\r\n";
+
+    if(mp["Connection"]=="Keep-Alive" || mp["Connection"]=="keep-alive")
+    {
+        header_line += "Connection: keep-alive\r\n"
+                + std::string("Keep-Alive: ") + std::string(std::to_string(GlobalValue::keep_alive_time.count())) +"s \r\n";
+
+    }
+    else
+    {
+        header_line += "Connection: Connection is closed\r\n";
+    }
+
+    write_buffer = status_line + header_line;
+    return ;
+}
+
+
+

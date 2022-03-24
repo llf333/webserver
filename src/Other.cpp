@@ -16,8 +16,24 @@ int GlobalValue::CurrentUserNumber=0;
 std::mutex GlobalValue::usernumber_mtx{};
 std::chrono::seconds GlobalValue::HttpHEADTime=std::chrono::seconds(60);
 std::chrono::seconds GlobalValue::HttpPostBodyTime=std::chrono::seconds(60);
+std::chrono::seconds GlobalValue::keep_alive_time=std::chrono::seconds(60);
 int GlobalValue::BufferMaxSize=2048;
 
+std::string GetTime()
+{
+    //time_t :整数类型 用来存储从1970年到现在经过了多少秒
+    //tm :结构类型 把日期和时间以结构的形式保存，tm 结构的定义如下：
+    time_t lt;
+    lt=time(NULL);
+
+    struct tm* ptr;
+    ptr= localtime(&lt);//转换为当地时间
+
+    char timebuffer[100];
+    strftime(timebuffer,100,"%a, %d %b %Y %H:%M:%S ",ptr);
+
+    return std::string(timebuffer);
+}
 
 int ReadData(int fd,std::string &read_buffer,bool& is_disconn)
 {

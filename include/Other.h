@@ -10,6 +10,7 @@
 #include<string>
 #include<regex>
 #include<iostream>
+#include<ctime>
 
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/basic_file_sink.h"
@@ -25,6 +26,7 @@ public:
 
     static std::chrono::seconds HttpHEADTime;
     static std::chrono::seconds HttpPostBodyTime;
+    static std::chrono::seconds keep_alive_time;
 
 private:
     static std::mutex usernumber_mtx;
@@ -49,6 +51,9 @@ std::shared_ptr<spdlog::logger> Getlogger(std::string path="./log/log.txt");
 int BindAndListen(int pot);
 
 int setnonblocking(int fd);
+
+std::string GetTime();
+
 
 std::optional<std::tuple<int,int,std::string>> AnalyseCommandLine(int argc,char* argv[]);//C++ 17
 
