@@ -212,7 +212,7 @@ sub_state_ParseHTTP HttpData::parse_header()
 
         if(current_pos == old_pos+2)
         {
-            read_buffer=read_buffer.substr(current_pos);//删除已提取的数据，注意：没删除\r\n
+            read_buffer=read_buffer.substr(current_pos);//删除已提取的数据，注意：没删除空行中的\r\n
             return header_is_ok;//搜索到空行了
         }
         std::string newline=read_buffer.substr(old_pos+2,current_pos-2-old_pos);
@@ -339,11 +339,68 @@ void HttpData::call_back_in()
 sub_state_ParseHTTP HttpData::Analyse_GetOrHead()
 {
     Write_Response_GeneralData();
+
+    std::string filename=mp["URL"].substr(mp["URL"].find_last_of('\\')+1);//最后一个斜杠之后的为文件名(注意，这里不包括斜杠)
+
+    //simple test
+    //-----------
+
+    //content-type字段
+    std::string content_type=SourceMap::Get_file_type(filename.substr(filename.find_last_of('.')));//根据文件名中的后缀写出字段
+    write_buffer += "content-type: " + content_type +"\r\n" ;
+
+    //content-length字段
+    std::string file_position="../resource/" + filename;
+    struct stat file_information;
+    if(stat(file_position.c_str(),&file_information)<0)
+    {
+        Set_HttpErrorMessage(http_cha->Get_fd(),404,"not found");
+        Getlogger()->debug("fd {} not found {},404",http_cha->Get_fd(),filename);
+        return analyse_error;
+    }
+    int lenth= file_information.st_size;
+    write_buffer += "content-length: " + std::to_string(lenth) + "\r\n";
+
+    //首部行结束
+    write_buffer += "\r\n";
+
+    //Head不需要实体
+    if(mp["method"]=="Head") return analyse_success;
+
+    //填充Get方法的实体报文
+    int file_fd=open(file_position.c_str(),O_RDONLY);
+
+    void* addr=mmap(0,lenth,PROT_READ,MAP_PRIVATE,file_fd,0);
+    close(file_fd);
+
+    if(addr==(void*) -1)
+    {
+        munmap(addr,lenth);
+        Set_HttpErrorMessage(http_cha->Get_fd(), 404, "not found");
+        return analyse_error;
+    }
+
+    char* buffer=(char* ) addr;
+    write_buffer += std::string(buffer,lenth);
+    munmap(addr,lenth);
+    return analyse_success;
 }
 
 sub_state_ParseHTTP HttpData::Analyse_Post()
 {
     Write_Response_GeneralData();
+
+    //这里只简单地将读到的数据转换为大写
+    //read_buffer中起始是一个空行
+    std::string body=read_buffer.substr(2);
+    for(int i=0;i<body.size();i++)
+        body[i]=std::toupper(body[i]);
+
+    write_buffer += std::string("Content-Type: text/plain\r\n") + "Content-Length: " + std::to_string(body.size()) + "\r\n";
+    write_buffer += "\r\n" + body;
+
+    return analyse_success;
+
 }
 
 void HttpData::Write_Response_GeneralData()
@@ -368,5 +425,30 @@ void HttpData::Write_Response_GeneralData()
     return ;
 }
 
+//文件类型映射
+void SourceMap::Init()
+{
+    /*文件类型*/
+    source_map[".html"] = "text/html";
+    source_map[".avi"] = "video/x-msvideo";
+    source_map[".bmp"] = "image/bmp";
+    source_map[".c"] = "text/plain";
+    source_map[".doc"] = "application/msword";
+    source_map[".gif"] = "image/gif";
+    source_map[".gz"] = "application/x-gzip";
+    source_map[".htm"] = "text/html";
+    source_map[".ico"] = "image/x-icon";
+    source_map[".jpg"] = "image/jpeg";
+    source_map[".png"] = "image/png";
+    source_map[".txt"] = "text/plain";
+    source_map[".mp3"] = "audio/mp3";
+    source_map["default"] = "text/html";
+}
 
+std::string SourceMap::Get_file_type(std::string file_type)
+{
+    std::call_once(o_flag,Init);
 
+    if(source_map.count(file_type)) return source_map[file_type];
+    else return source_map["default"];
+}
