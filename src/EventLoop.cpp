@@ -4,14 +4,14 @@
 #include "EventLoop.h"
 
 EventLoop::EventLoop(bool ismain): is_mainReactor(ismain),epollfd(epoll_create1(EPOLL_CLOEXEC))
-                                   ,wheelOFloop(new TimeWheel(12)),stop(true)
+                                   ,wheelOFloop(new TimeWheel(12)),stop(true)//初始化时是停止的
 {
 
 }
 
 EventLoop::~EventLoop()
 {
-    stop=false;
+    stop=true;
     delete wheelOFloop;
     close(epollfd);
 }
@@ -42,9 +42,17 @@ bool EventLoop::AddChanel(Chanel* CHNL)
     {
         if(CHNL->Get_holder())
         {
-            httppool[fd]=std::shared_ptr<HttpData>(CHNL->Get_holder());
+            //httppool[fd]=std::shared_ptr<HttpData>(CHNL->Get_holder());
+
             //应该把httpdata和timer关联起来
-            wheelOFloop->TimeWheel_insert_Timer(GlobalValue::HttpHEADTime,CHNL->Get_holder());
+            Timer* res=wheelOFloop->TimeWheel_insert_Timer(GlobalValue::HttpHEADTime,CHNL->Get_holder());
+            if(!res)
+            {
+                Getlogger()->error("insert timer error");
+                return false;
+            }
+
+            //更改连接数量
             {
                 std::unique_lock<std::mutex> locker(NUMmtx);
                 NUM_Conn++;
@@ -98,10 +106,11 @@ bool EventLoop::DELChanel(Chanel* CHNL)
     {
         //删除http池中的数据和定时器
         get_theTimeWheel()->TimerWheel_Remove_Timer(CHNL->Get_holder()->Get_timer());
-        httppool[fd]=nullptr;
+      //  httppool[fd]=nullptr;
     }
     chanelpool[fd].reset(nullptr);
     return true;
+
 }
 
 void EventLoop::StartLoop()

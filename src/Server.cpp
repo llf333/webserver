@@ -29,6 +29,7 @@ void SERVER::Server_Start()
 
     server_main_Reactor->AddChanel(listen_CH);
 
+    //给线程池中的任务队列添加任务，任务是跑子Reactor，每个线程对应一个子Reactor
     auto subreactor_size=server_thread_pool->sizeofpoll;
     for(decltype(subreactor_size) i =0;i<subreactor_size;++i)
     {
@@ -40,7 +41,7 @@ void SERVER::Server_Start()
         }
         SubReactors.emplace_back(sub);
         server_thread_pool->Add_task([=]{sub->StartLoop();});//每个线程的任务是跑SubReatcor
-        timeWheel_PipeOfWrite.emplace_back(sub->get_theTimeWheel()->tick_d[1]);
+        timeWheel_PipeOfWrite.emplace_back(sub->get_theTimeWheel()->tick_d[1]);//保存每个时间轮的tick管道写端，往里面写数据意味着tick一下
     }
 }
 
@@ -138,6 +139,7 @@ void SERVER::CONNisComing()
         HttpData* newholder=new HttpData(newconn,SubReactors[idx].get());
         newconn->Set_holder(newholder);
 
+        //分发
         SubReactors[idx]->AddChanel(newconn);
 
         Getlogger()->info("SubReactor {} add a connect :{}",idx,connfd);

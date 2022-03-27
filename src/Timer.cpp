@@ -35,6 +35,7 @@ TimeWheel::~TimeWheel()
     close(tick_d[1]);
 }
 
+//新建时间器在该函数里，且和holder绑定
 Timer* TimeWheel::TimeWheel_insert_Timer(std::chrono::seconds timeout,HttpData* holder)
 {
     if(timeout<std::chrono::seconds(0)) return nullptr;
@@ -46,7 +47,7 @@ Timer* TimeWheel::TimeWheel_insert_Timer(std::chrono::seconds timeout,HttpData* 
         cycle=(timeout/Si)/SizeOfTW;
         pos=(CurrentPos+(timeout/Si)%SizeOfTW)%SizeOfTW;
     }
-    Timer *Temp;
+    Timer *Temp=nullptr;
     Temp = new Timer(pos, cycle);
     slot[pos].push_back(Temp);
 

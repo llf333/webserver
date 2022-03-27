@@ -71,10 +71,10 @@ private:
     void Reset();
 
     //四种回调函数
-    void call_back_in();
-    void call_back_out();
-    void call_back_error();
-    void call_back_rdhub();
+    void call_back_in();//读
+    void call_back_out();//写
+    void call_back_error();//错误
+    void call_back_rdhub();//断开连接
 
 };
 

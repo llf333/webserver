@@ -50,6 +50,7 @@ int main(int argc,char* argv[])
     {
         std::cout<<"The command line is wrong! "<<std::endl;
         std::cout<<"Please use the form :: ./server -p Port -s SubReactorSize -l LogPath(start with ./)"<<std::endl;
+        return 0;
     }
 
     //开启日志
@@ -81,6 +82,7 @@ int main(int argc,char* argv[])
 
     alarm(10);
 
+    //单例模式
     SERVER* main_server=SERVER::Get_the_service(std::get<0>(*res),main_reactor,main_thread_pool);
 
     main_server->Server_Start();

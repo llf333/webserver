@@ -5,8 +5,9 @@
 
 #include<stdint.h>
 #include<functional>
-#include<Other.h>
-#include<EventLoop.h>
+#include "Other.h"
+#include "EventLoop.h"
+#include "HttpData.h"
 
 class HttpData;
 
@@ -42,8 +43,8 @@ public:
 
     int Get_fd() {return fd;}
 
-    Httpdata* Get_holder(){return holder;}
-    void Set_holder(Httpdata* holder_){holder=holder_;}
+    HttpData* Get_holder(){return holder;}
+    void Set_holder(HttpData* holder_){holder=holder_;}
 
     bool Get_isconn(){return is_connect;};
     bool IsEqualToLast();

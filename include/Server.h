@@ -10,6 +10,7 @@
 #include "Other.h"
 #include "Chanel.h"
 #include "EventLoop.h"
+#include "HttpData.h"
 
 class EventLoop;
 class Chanel;

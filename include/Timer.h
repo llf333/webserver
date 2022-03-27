@@ -52,7 +52,7 @@ class TimeWheel
 {
 private:
     std::vector< std::list<Timer*> > slot;//时间轮的槽，每个槽中有一个链表
-    size_t SizeOfTW;
+    size_t SizeOfTW;//一轮几个槽
     size_t CurrentPos=0;//初始在第0个槽
     std::chrono::seconds Si;//一个槽代表经过一秒
 
