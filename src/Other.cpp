@@ -19,6 +19,7 @@ std::chrono::seconds GlobalValue::HttpPostBodyTime=std::chrono::seconds(60);
 std::chrono::seconds GlobalValue::keep_alive_time=std::chrono::seconds(180);
 int GlobalValue::BufferMaxSize=2048;
 
+
 std::string GetTime()
 {
     //time_t :整数类型 用来存储从1970年到现在经过了多少秒
@@ -55,10 +56,14 @@ int ReadData(int fd,std::string &read_buffer,bool& is_disconn)
 
         char buffer[GlobalValue::BufferMaxSize];
         memset(buffer,'\0',sizeof buffer);//最后一个字符是‘\0’
-        int ret= recv(fd,buffer,(sizeof buffer)-1,0);
+        int ret= recv(fd,buffer,(sizeof buffer)+1,0);
         if(ret<0)
         {
-            if(errno == EWOULDBLOCK || errno == EAGAIN) return read_sum;
+            if(errno == EWOULDBLOCK || errno == EAGAIN)
+            {
+                return read_sum;
+            }
+
             else if(errno == EINTR) continue;
             else
             {
@@ -67,7 +72,9 @@ int ReadData(int fd,std::string &read_buffer,bool& is_disconn)
                 break;
             }
         }
+        read_buffer += buffer;//bug----没写进read_buffer
         read_sum+=ret;
+        std::cout<<read_buffer<<std::endl;
     }
     return read_sum;
 }
@@ -79,7 +86,7 @@ int WriteData(int fd,std::string& buffer,bool& full)
     const char* wait_to_send= nullptr;
     wait_to_send=buffer.c_str();//c_str()后末尾会加一个'\0'
 
-    int num=sizeof buffer + 1;
+    int num=buffer.size() + 1;
 
     while(num)
     {
@@ -101,6 +108,7 @@ int WriteData(int fd,std::string& buffer,bool& full)
             write_sum+=write_once;
             num-=write_once;
             wait_to_send+=write_once;//向后移动
+
         }
     }
 
@@ -156,8 +164,11 @@ std::shared_ptr<spdlog::logger> Getlogger(std::string path)
     }
     catch (const spdlog::spdlog_ex& ex)
     {
+        std::cout<<"333"<<std::endl;
         std::cout << "Log initialization failed: " << ex.what() << std::endl;
     }
+
+    return {};
 }
 
 int BindAndListen(int pot)
@@ -210,10 +221,18 @@ int BindAndListen(int pot)
 int setnonblocking(int fd)
 {
     int old_option=fcntl(fd,F_GETFL);
-    if(old_option==-1) return -1;
+    if(old_option==-1)
+    {
+        std::cout<<strerror(errno)<<std::endl;
+        return -1;
+    }
 
     int new_option=old_option | O_NONBLOCK;
-    if(fcntl(fd,F_SETFL,new_option)==-1) return -1;
+    if(fcntl(fd,F_SETFL,new_option)==-1)
+    {
+        std::cout<<strerror(errno)<<std::endl;
+        return -1;
+    }
 
     return 0;
 }

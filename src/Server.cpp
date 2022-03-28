@@ -75,9 +75,11 @@ void SERVER::CONNisComing()
             {
                 close(connfd);
                 Getlogger()->error("failed to accept", strerror(errno));
-                return ;
             }
+            return ;//new bug----return应该写在外面
         }
+
+
 
         if(GlobalValue::CurrentUserNumber>=GlobalValue::TheMaxConnNumber)
         {
@@ -85,6 +87,8 @@ void SERVER::CONNisComing()
             Getlogger()->warn("too many connect");
             return ;
         }
+
+
         GlobalValue::Inc_Current_user_number();
 
         if(setnonblocking(connfd) < 0)
@@ -93,6 +97,8 @@ void SERVER::CONNisComing()
             Getlogger()->error("failed to set nonblocking on connfd");
             return;
         }
+
+
         /*!
          *llf
          * TCP/IP协议中针对TCP默认开启了Nagle算法。Nagle算法通过减少需要传输的数据包，来优化网络。在内核实现中，数据包的发送和接受会先做缓存，分别对应于写缓存和读缓存。
@@ -103,14 +109,19 @@ void SERVER::CONNisComing()
          vectored I/O（writev接口）也是个不错的选择。
          */
 
-        const char enable=1;
-        int ret=setsockopt(connfd,IPPROTO_TCP,TCP_NODELAY,&enable,sizeof enable);
+//new bug 设置该选项的enable必须使用int，char类型不行
+        const int enable=1;
+        int ret=setsockopt(connfd,IPPROTO_TCP,TCP_NODELAY,&enable,sizeof (int));
+
+
         if(ret==-1)
         {
+            std::cout<<strerror(errno)<<std::endl;
+            ::Getlogger()->error("failed to set TCP_NODELAY on connfd", strerror(errno));
             close(connfd);
-            Getlogger()->error("failed to set TCP_NODELAY on connfd", strerror(errno));
             return ;
         }
+
 
 
         //建立好新连接之后，把任务派发给子Reactor（派发形式是找连接数量最少的子Reactor）
@@ -136,13 +147,15 @@ void SERVER::CONNisComing()
             }
         }
 
-        HttpData* newholder=new HttpData(newconn,SubReactors[idx].get());
+        HttpData* newholder=new HttpData(newconn,SubReactors[idx].get());//chanel的四个回调函数在这里面绑定
         newconn->Set_holder(newholder);
 
         //分发
         SubReactors[idx]->AddChanel(newconn);
 
         Getlogger()->info("SubReactor {} add a connect :{}",idx,connfd);
+
+        std::cout<<"get a new conn222"<<std::endl;
     }
 }
 

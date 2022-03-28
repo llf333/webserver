@@ -31,11 +31,16 @@ void HttpData::state_machine()
                 sub_state=parse_requestline();
                 switch (sub_state) {
                     case requestline_data_is_not_complete:
+                    {
+                        std::cout<<"data is not complete"<<std::endl;
                         return ;//直接return表示不发送数据
+                    }
+
                     case requestline_parse_error:
                         Set_HttpErrorMessage(http_cha->Get_fd(),400,"Bad Request: Request line has syntax error");
                         error=true;
                         break;
+
                     case requestline_is_ok:
                         main_state = check_state_header;
                         break;
@@ -94,9 +99,9 @@ void HttpData::state_machine()
             {
                 if(mp.count("method"))
                 {
-                    if(mp["method"]=="post" || mp["method"]=="Post")
+                    if(mp["method"]=="post" || mp["method"]=="POST")
                         sub_state=HttpData::Analyse_Post();
-                    else if(mp["method"]=="get" || mp["method"]=="Get" || mp["method"]=="head" || mp["method"]=="Head")
+                    else if(mp["method"]=="get" || mp["method"]=="GET" || mp["method"]=="head" || mp["method"]=="HEAD")
                         sub_state=HttpData::Analyse_GetOrHead();
                     else return ;//其他方法暂时不做处理
 
@@ -241,9 +246,13 @@ void HttpData::Http_send()
          if( full && write_sum < data_sum)//如果发送缓冲区满了，但是数据还没发送完，则重新注册Epollout事件，等待下次读入。
          {
              //注册
+             Reset_Http_events(false);
              //删除定时器，防止超时
+             belong_sub->get_theTimeWheel()->TimerWheel_Remove_Timer(http_timer);
              //设置自己的定时器为空
+             http_timer= nullptr;
              //返回
+             return ;
          }
          write_sum+=ret;
     }
@@ -298,11 +307,11 @@ void HttpData::Set_HttpErrorMessage(int fd,int erro_num,std::string msg)
     response_body += "<html><title>错误</title>";
     response_body += "<body bgcolor=\"ffffff\">";
     response_body += std::to_string(erro_num)+msg;
-    response_body += "<hr><em> Hust---LLF Server</em>\n</body></html>";
+    response_body += "<hr><em> Hust---LLF Server</em>\n</body></html>\r\n";
 
     //编写header
     std::string response_header{};
-    response_header += "Http/1.1" + std::to_string(erro_num) + msg + "\r\n";
+    response_header += "Http/1.1 " + std::to_string(erro_num) + " " + msg + "\r\n";
     response_header += "Date: " + GetTime() + "\r\n";
     response_header += "Server: Hust---LLF\r\n";
     response_header += "Content-Type: text/html\r\n";
@@ -336,6 +345,26 @@ void HttpData::call_back_in()
 
 }
 
+void HttpData::call_back_out()
+{
+
+}
+
+void HttpData::call_back_error()
+{
+
+}
+
+void HttpData::call_back_rdhub()
+{
+
+}
+
+void HttpData::TimerTimeoutCallback()
+{
+
+}
+
 sub_state_ParseHTTP HttpData::Analyse_GetOrHead()
 {
     Write_Response_GeneralData();
@@ -365,7 +394,7 @@ sub_state_ParseHTTP HttpData::Analyse_GetOrHead()
     write_buffer += "\r\n";
 
     //Head不需要实体
-    if(mp["method"]=="Head") return analyse_success;
+    if(mp["method"]=="HEAD" || mp["method"]=="head" ) return analyse_success;
 
     //填充Get方法的实体报文
     int file_fd=open(file_position.c_str(),O_RDONLY);
@@ -405,7 +434,7 @@ sub_state_ParseHTTP HttpData::Analyse_Post()
 
 void HttpData::Write_Response_GeneralData()
 {
-    std::string status_line = mp["version"] + "200 OK\r\n";
+    std::string status_line = mp["version"] + " 200 OK\r\n";
     std::string header_line{};
     header_line += "Date: "+ GetTime() + "\r\n";
     header_line += "Server: Hust---LLF\r\n";
@@ -426,6 +455,9 @@ void HttpData::Write_Response_GeneralData()
 }
 
 //文件类型映射
+
+std::unordered_map<std::string,std::string> SourceMap::source_map{};
+std::once_flag SourceMap::o_flag{};
 void SourceMap::Init()
 {
     /*文件类型*/

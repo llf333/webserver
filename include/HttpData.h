@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include<sys/mman.h>
+#include<unordered_map>
 
 #include"Chanel.h"
 #include"Other.h"
@@ -15,6 +16,23 @@
 class Chanel;
 class EventLoop;
 class Timer;
+
+// 文件类型映射
+class SourceMap
+{
+private:
+    static void Init();
+    SourceMap() =default;
+
+public:
+    SourceMap(SourceMap& other) =delete;
+    SourceMap operator=(SourceMap& other) =delete;
+    static std::string Get_file_type(std::string file_type);
+
+private:
+    static std::unordered_map<std::string,std::string> source_map;
+    static std::once_flag o_flag; //配合std::call_once函数保证Init()在多个线程中只被调用一次
+};
 
 //主状态机
 enum main_State_ParseHTTP{check_state_requestline, check_state_header, check_headerIsOk, check_body, check_state_analyse_content};
@@ -77,27 +95,6 @@ private:
     void call_back_rdhub();//断开连接
 
 };
-
-
-// 文件类型映射
-class SourceMap
-{
-private:
-    static void Init();
-    SourceMap() =default;
-
-public:
-    SourceMap(SourceMap& other) =delete;
-    SourceMap operator=(SourceMap& other) =delete;
-    static std::string Get_file_type(std::string file_type);
-
-private:
-    static std::unordered_map<std::string,std::string> source_map;
-    static std::once_flag o_flag; //配合std::call_once函数保证Init()在多个线程中只被调用一次
-};
-
-
-
 
 
 
