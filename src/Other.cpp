@@ -18,6 +18,7 @@ std::chrono::seconds GlobalValue::HttpHEADTime=std::chrono::seconds(60);
 std::chrono::seconds GlobalValue::HttpPostBodyTime=std::chrono::seconds(60);
 std::chrono::seconds GlobalValue::keep_alive_time=std::chrono::seconds(180);
 int GlobalValue::BufferMaxSize=2048;
+int GlobalValue::TimeWheel_PerSlotTime=1;
 
 
 std::string GetTime()
@@ -117,6 +118,31 @@ int WriteData(int fd,std::string& buffer,bool& full)
 
     return write_sum;
 }
+
+int Write_to_fd(int fd,const char* content,int length)
+{
+    const char* pos=content;
+    int write_num=0;
+
+    while(write_num<length)
+    {
+        int write_once= write(fd,pos,length-write_num);
+        if(write_once<0)
+        {
+            if(errno == EINTR) continue;//忽略系统中断
+            else if(errno == EAGAIN) return write_num;//缓冲区满
+            else{
+                Getlogger()->error("write data to filefd {} error: {}", fd, strerror(errno));
+                return -1;                               //否则表示发生了错误，返回-1
+            }
+        }
+        write_num+=write_once;
+        pos+=write_once;
+    }
+    return write_num;
+
+}
+
 
 
 

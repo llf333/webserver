@@ -22,7 +22,9 @@ class HttpData;
 class SERVER
 {
 private:
-    static SERVER* service;//使用单例饿汉模式，注意全局只能初始化一次，饿汉模式线程不安全
+    static SERVER* service;//使用单例饿汉模式，注意全局只能初始化一次，懒汉模式线程不安全
+    static std::mutex init_lock;
+
     SERVER(int pot, EventLoop* mainreactor, Thread_Pool* T_P);
 
     int port;//这里刻意地调整了一下顺序以防出错
@@ -42,12 +44,16 @@ public:
 
     static SERVER* Get_the_service(int pot, EventLoop* Main_R, Thread_Pool* T_P)
     {
-        if(service!= nullptr) return service;
-        else
+        if(service == nullptr)//使用线程安全的懒汉模式
         {
-            service=new SERVER (pot, Main_R,T_P);
-            return service;
+            {
+                std::unique_lock<std::mutex> locker(init_lock);
+                if(service == nullptr)
+                    service=new SERVER (pot,Main_R,T_P);
+            }
         }
+
+        return service;
     }
 
 private:

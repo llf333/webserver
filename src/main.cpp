@@ -11,6 +11,7 @@
 
 #include<signal.h>
 
+static SERVER* main_server;//为什么要写成全局，一是它是唯一的，二是方便信号处理函数调用
 
 static void sig_thread(void* set)
 {
@@ -31,13 +32,34 @@ static void sig_thread(void* set)
         {
             stop=true;
             //delete所有资源并退出程序
+            main_server->Server_Stop();
+            delete main_server;
+            exit(0);
         }
         else if(sig == SIGALRM)
         {
-
+            std::string msg="its time to tick";
+            for(auto& it:main_server->timeWheel_PipeOfWrite)
+            {
+                const char* msg="tick\0";//随便写点消息
+                int ret= Write_to_fd(it,msg, strlen(msg));
+                if(ret==-1)
+                {
+                    Getlogger()->error("tick error in sig_thread");
+                    exit(-1);
+                }
+                alarm(GlobalValue::TimeWheel_PerSlotTime);
+            }
         }
         else if(sig == SIGPIPE)
         {
+            // do nothing
+
+            //如果不处理这个信号，默认行为是关闭进程
+
+            //SIGPIPE什么时候被收到：
+            //① 初始时，C、S连接建立，若某一时刻，C端进程关机或者被KILL而终止（终止的C端进程将会关闭打开的文件描述符，即向S端发送FIN段），S端收到FIN后，响应ACK
+            //② 假设此时，S端仍然向C端发送数据：当第一次写数据后，S端将会收到RST分节； 当收到RST分节后，第二次写数据后，S端将收到SIGPIPE信号（S端进程被终止）
 
         }
     }
@@ -80,10 +102,10 @@ int main(int argc,char* argv[])
     Thread_Pool* main_thread_pool=new Thread_Pool(std::get<1>(*res));
     EventLoop* main_reactor=new EventLoop(true);
 
-    alarm(10);
+    alarm(GlobalValue::TimeWheel_PerSlotTime);//这个时间应该是时间轮每一槽经过的时间
 
     //单例模式
-    SERVER* main_server=SERVER::Get_the_service(std::get<0>(*res),main_reactor,main_thread_pool);
+    main_server=SERVER::Get_the_service(std::get<0>(*res),main_reactor,main_thread_pool);
 
     main_server->Server_Start();
 

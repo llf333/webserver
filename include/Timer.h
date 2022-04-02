@@ -7,6 +7,7 @@
 #include<vector>
 #include "Other.h"
 #include "HttpData.h"
+#include "Chanel.h"
 
 class Chanel;
 class HttpData;
@@ -56,11 +57,11 @@ private:
     size_t CurrentPos=0;//初始在第0个槽
     std::chrono::seconds Si;//一个槽代表经过一秒
 
+    Chanel* tick_chanel;//监听tick[0]的事件
+    int tick_d[2]{};// 用于tick时间轮的管道，tick[1]为写，tick[0]表示读
+
 private:
     void tick();//tick的功能就是到时后，执行当前槽中的已经到时的定时器，并移动至下一个槽
-
-public:
-    int tick_d[2]{};// 用于tick时间轮的管道
 
 public:
     TimeWheel(size_t maxsize);
@@ -70,6 +71,9 @@ public:
     Timer* TimeWheel_insert_Timer(std::chrono::seconds timeout,HttpData* holder);
     bool TimerWheel_Remove_Timer(Timer* timer);
     bool TimerWheel_Adjust_Timer(Timer* timer,std::chrono::seconds timeout);
+
+    Chanel* Get_tickChanel(){return tick_chanel;};
+    int Get_1tick(){return tick_d[1];};
 
 };
 #endif

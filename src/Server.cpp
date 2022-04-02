@@ -6,6 +6,8 @@
 
 
 SERVER* SERVER::service= nullptr;//定义必须写在.cpp文件中
+std::mutex SERVER::init_lock{};
+
 //2022-3-14
 SERVER::SERVER(int pot, EventLoop* Main_R, Thread_Pool* T_P)
                 :port(pot),listen_fd(BindAndListen(port)),
@@ -41,7 +43,7 @@ void SERVER::Server_Start()
         }
         SubReactors.emplace_back(sub);
         server_thread_pool->Add_task([=]{sub->StartLoop();});//每个线程的任务是跑SubReatcor
-        timeWheel_PipeOfWrite.emplace_back(sub->get_theTimeWheel()->tick_d[1]);//保存每个时间轮的tick管道写端，往里面写数据意味着tick一下
+        timeWheel_PipeOfWrite.emplace_back(sub->get_theTimeWheel()->Get_1tick());//保存每个时间轮的tick管道写端，往里面写数据意味着tick一下
     }
 }
 
@@ -76,7 +78,7 @@ void SERVER::CONNisComing()
                 close(connfd);
                 Getlogger()->error("failed to accept", strerror(errno));
             }
-            return ;//new bug----return应该写在外面
+            return ;//bug----return应该写在外面
         }
 
 
@@ -109,7 +111,7 @@ void SERVER::CONNisComing()
          vectored I/O（writev接口）也是个不错的选择。
          */
 
-//new bug 设置该选项的enable必须使用int，char类型不行
+//bug 设置该选项的enable必须使用int，char类型不行，每个控制选项的类型不同，查表而知。
         const int enable=1;
         int ret=setsockopt(connfd,IPPROTO_TCP,TCP_NODELAY,&enable,sizeof (int));
 
@@ -125,7 +127,7 @@ void SERVER::CONNisComing()
 
 
         //建立好新连接之后，把任务派发给子Reactor（派发形式是找连接数量最少的子Reactor）
-        //注意这里还没加入子Reactor的httpdata池中，也没设置holder——已经在addchanel中加入了
+        //注意这里还没加入子Reactor的httpdata池中，也没设置holder————已经在addchanel中加入了
 
         Chanel* newconn(new Chanel(connfd, true));
         /*!

@@ -27,6 +27,7 @@ public:
     static std::chrono::seconds HttpHEADTime;
     static std::chrono::seconds HttpPostBodyTime;
     static std::chrono::seconds keep_alive_time;
+    static int TimeWheel_PerSlotTime;
 
 private:
     static std::mutex usernumber_mtx;
@@ -41,6 +42,7 @@ public:
 
 int ReadData(int fd,std::string &buffer,bool &is_disconn);//返回读了多少数据
 int WriteData(int fd,std::string& buffer,bool& full);//返回写了多少数据，并随时判断发送缓冲区是否已满
+int Write_to_fd(int fd,const char* content,int length);
 
 /*!
  * 生成全局唯一的logger对象

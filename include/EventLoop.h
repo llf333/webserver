@@ -20,10 +20,13 @@ private:
     int NUM_Conn;
     std::mutex NUMmtx;
 
-    int epollfd;
+
     static const int PerEpollMaxEvent=4096;
     static const int Epoll_timeout=1;//如果设置为0，理论上很占cpu，因为内核会一直调用epoll，但还未测试
+
+    int epollfd;//epoll在使用时要配一个epoll_event数组
     epoll_event events[PerEpollMaxEvent];
+
     std::unique_ptr<Chanel> chanelpool[PerEpollMaxEvent];//为什么要设置这个数组，原因是使得在监听时可以直接根据fd值来访问对应Chanel,相当于起一个映射的关系
    // std::shared_ptr<HttpData> httppool[PerEpollMaxEvent];//感觉可以删除，好像没必要存这个映射，可以用Chanel->GetHolder
 

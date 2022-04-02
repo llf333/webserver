@@ -6,6 +6,11 @@
 EventLoop::EventLoop(bool ismain): is_mainReactor(ismain),epollfd(epoll_create1(EPOLL_CLOEXEC))
                                    ,wheelOFloop(new TimeWheel(12)),stop(true)//初始化时是停止的
 {
+    if(!AddChanel(wheelOFloop->Get_tickChanel()) || epollfd==-1)//将该Reactor的时间轮的“监听tick[0]的事件”添加到事件池中
+    {
+        Getlogger()->error("create reactor erro : {}", strerror(errno));
+        exit(-1);
+    }
 
 }
 
@@ -16,13 +21,14 @@ EventLoop::~EventLoop()
     close(epollfd);
 }
 
-
+//将要监听的事件添加到epoll中
 bool EventLoop::AddChanel(Chanel* CHNL)
 {
     int fd=CHNL->Get_fd();
     epoll_event ev{};
 
-    bzero(&ev,sizeof ev);
+    //bzero(&ev,sizeof ev);//bzero是linux特有的，推荐使用memset
+    memset(&ev,0,sizeof ev);
 
     ev.data.fd=fd;
     ev.events = CHNL->Get_events() | EPOLLET;//bug!!!!! 得获取chanel的事件再并
@@ -30,11 +36,12 @@ bool EventLoop::AddChanel(Chanel* CHNL)
     if(epoll_ctl(epollfd,EPOLL_CTL_ADD,fd,&ev)==-1)
     {
         //日志输入添加失败
+        Getlogger()->error("add chanel to epoll fail {}", strerror(errno));
         return false;
     }
 
     //成功后，将该chanel添加到池里面
-    chanelpool[fd]=std::unique_ptr<Chanel>(CHNL);
+    chanelpool[fd]=std::unique_ptr<Chanel>(CHNL);//又新建一个指针————注意资源管理
 
     //如果还是连接socket,则将http数据存入池中
     // 并挂靠定时器
@@ -78,6 +85,7 @@ bool EventLoop::MODChanel(Chanel* CHNL,__uint32_t EV)
         if(epoll_ctl(epollfd,EPOLL_CTL_MOD,fd,&ev)==-1)
         {
             //日志输入修改失败
+            Getlogger()->error("modify chanel in epoll fail {}", strerror(errno));
             return false;
         }
 
@@ -91,7 +99,8 @@ bool EventLoop::DELChanel(Chanel* CHNL)
 {
     int fd=CHNL->Get_fd();
     epoll_event ev;
-    bzero(&ev,sizeof ev);
+    //推荐使用memset//bzero(&ev,sizeof ev);
+    memset(&ev,0,sizeof ev);
     ev.data.fd=fd;
     ev.events=0;
 

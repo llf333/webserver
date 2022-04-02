@@ -11,7 +11,7 @@
 
 using namespace std;
 
-int main(int argc,char* argv[])//格式./test port
+int main(int argc,char* argv[])//格式./test port 127.0.0.1
 {
     if(argc<2)
     {
@@ -20,12 +20,18 @@ int main(int argc,char* argv[])//格式./test port
     }
 
     //下面写http报文
-    string httpdata{};
+    string head{};
+    string get{};
 
     //head
-    httpdata += "HEAD /index.html HTTP/1.1\r\n";
-    httpdata += "Connection: keep-alive\r\n";
-    httpdata += "\r\n";
+    head += "HEAD /index.html HTTP/1.1\r\n";
+    head += "Connection: keep-alive\r\n";
+    head += "\r\n";
+
+    //get
+    get += "GET /index.html HTTP/1.1\r\n";
+    get += "Connection: keep-alive\r\n";
+    get += "\r\n";
 
     int sockfd= socket(PF_INET,SOCK_STREAM,0);
     if(sockfd<0)
@@ -53,7 +59,7 @@ int main(int argc,char* argv[])//格式./test port
     sleep(5);
 
     //发送数据
-    const char* buf=httpdata.c_str();
+    const char* buf=get.c_str();
     cout<<buf<<endl;
     int rest=send(sockfd,buf, strlen(buf),0);//bug————————————————之前用的sizeof，sizeof char* 为8个字节！！！！！！
     if(rest<0)

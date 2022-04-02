@@ -28,7 +28,8 @@ private:
     CALLBACK disconn_handle;
 
 public:
-    Chanel(int _fd, bool is_conn_, std::chrono::seconds timeout=GlobalValue::client_header_timeout);
+   // Chanel(int _fd, bool is_conn_, std::chrono::seconds timeout=GlobalValue::client_header_timeout);
+    Chanel(int _fd, bool is_conn_);
     ~Chanel();
     void Register_RdHandle(CALLBACK func) {read_handle=std::move(func);}
     void Register_WrHandle(CALLBACK func) {write_hande=std::move(func);}

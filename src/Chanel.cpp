@@ -2,7 +2,7 @@
 
 #include "Chanel.h"
 
-Chanel::Chanel(int _fd, bool is_conn_, std::chrono::seconds timeout): fd(_fd),is_connect(is_conn_)
+Chanel::Chanel(int _fd, bool is_conn_): fd(_fd),is_connect(is_conn_)
 {
 }
 
