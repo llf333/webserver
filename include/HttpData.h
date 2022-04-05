@@ -78,8 +78,6 @@ private:
     sub_state_ParseHTTP parse_header();
     void Set_HttpErrorMessage(int fd,int erro_num,std::string msg);
 
-    void Http_send();
-
     sub_state_ParseHTTP Analyse_GetOrHead();
     sub_state_ParseHTTP Analyse_Post();
 

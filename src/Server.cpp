@@ -157,7 +157,7 @@ void SERVER::CONNisComing()
 
         Getlogger()->info("SubReactor {} add a connect :{}",idx,connfd);
 
-        std::cout<<"get a new conn222"<<std::endl;
+       // std::cout<<"get a new conn222"<<std::endl;
     }
 }
 

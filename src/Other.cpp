@@ -75,7 +75,7 @@ int ReadData(int fd,std::string &read_buffer,bool& is_disconn)
         }
         read_buffer += buffer;//bug----没写进read_buffer
         read_sum+=ret;
-        std::cout<<read_buffer<<std::endl;
+      //  std::cout<<read_buffer<<std::endl;
     }
     return read_sum;
 }
@@ -98,6 +98,7 @@ int WriteData(int fd,std::string& buffer,bool& full)
 
             else if(errno == EAGAIN || errno == EWOULDBLOCK)
             {
+
                 full=true;
                 return write_sum;
             }
@@ -106,11 +107,11 @@ int WriteData(int fd,std::string& buffer,bool& full)
                 Getlogger()->error("failed to write data to socket");
                 return -1;
             }
-            write_sum+=write_once;
-            num-=write_once;
-            wait_to_send+=write_once;//向后移动
-
         }
+        //bug--别写在上面大括号里面去了
+        write_sum+=write_once;
+        num-=write_once;
+        wait_to_send+=write_once;//向后移动
     }
 
     if(buffer.size()+1 == write_sum) buffer.clear();

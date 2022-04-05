@@ -97,6 +97,7 @@ void HttpData::state_machine()
 
             case check_state_analyse_content://分析并填充发送报文
             {
+
                 if(mp.count("method"))
                 {
                     if(mp["method"]=="post" || mp["method"]=="POST")
@@ -105,10 +106,11 @@ void HttpData::state_machine()
                         sub_state=HttpData::Analyse_GetOrHead();
                     else return ;//其他方法暂时不做处理
 
+                   // std::cout<<"WRITE_BUFFER:"<<std::endl<<write_buffer<<std::endl;
 
                     if(sub_state == analyse_error)
                     {
-                        Set_HttpErrorMessage(http_cha->Get_fd(),500,"Internal Server Error: analyse data not success");
+                        //Set_HttpErrorMessage(http_cha->Get_fd(),500,"Internal Server Error: analyse data not success");
                         error=true;
                         break;
                     }
@@ -129,7 +131,7 @@ void HttpData::state_machine()
         }
     }
 
-    Http_send();
+    call_back_out();
 }
 
 sub_state_ParseHTTP HttpData::parse_requestline()
@@ -138,6 +140,8 @@ sub_state_ParseHTTP HttpData::parse_requestline()
     auto pos=read_buffer.find("\r\n");
 
     if(pos == std::string::npos) return sub_state_ParseHTTP::requestline_data_is_not_complete;
+
+   // std::cout<<read_buffer;
 
     requestline=read_buffer.substr(0,pos);
     read_buffer=read_buffer.substr(pos);//删除已提取的数据，注意：没删除\r\n
@@ -217,6 +221,7 @@ sub_state_ParseHTTP HttpData::parse_header()
 
         if(current_pos == old_pos+2)
         {
+          //  std::cout<<read_buffer<<std::endl;
             read_buffer=read_buffer.substr(current_pos);//删除已提取的数据，注意：没删除空行中的\r\n
             return header_is_ok;//搜索到空行了
         }
@@ -224,44 +229,6 @@ sub_state_ParseHTTP HttpData::parse_header()
 
         if(!deal_with_perline(newline)) return header_parse_error;//格式出错
     }
-}
-
-void HttpData::Http_send()
-{
-    int fd=http_cha->Get_fd();
-    int data_sum=write_buffer.size()+1;
-    int write_sum=0;
-    bool full=false;//表示发送缓冲区是否已满
-
-    while(write_sum<data_sum)
-    {
-         int ret=WriteData(fd,write_buffer,full);
-         if(ret==-1)
-         {
-             //写数据出错，断开连接
-             call_back_rdhub();
-             return;
-         }
-
-         if( full && write_sum < data_sum)//如果发送缓冲区满了，但是数据还没发送完，则重新注册Epollout事件，等待下次读入。
-         {
-             //注册
-             Reset_Http_events(false);
-             //删除定时器，防止超时
-             belong_sub->get_theTimeWheel()->TimerWheel_Remove_Timer(http_timer);
-             //设置自己的定时器为空
-             http_timer= nullptr;
-             //返回
-             return ;
-         }
-         write_sum+=ret;
-    }
-    //发送完数据要重新注册Epollin，
-    Reset_Http_events(true);
-
-    //重置
-    Reset();
-
 }
 
 void HttpData::Reset_Http_events(bool in)//true 表示注册Epollin； false 表示注册Epollout
@@ -307,18 +274,19 @@ void HttpData::Set_HttpErrorMessage(int fd,int erro_num,std::string msg)
     response_body += "<html><title>错误</title>";
     response_body += "<body bgcolor=\"ffffff\">";
     response_body += std::to_string(erro_num)+msg;
-    response_body += "<hr><em> Hust---LLF Server</em>\n</body></html>\r\n";
+    response_body += "<hr><em> Hust---LLF Server</em>\n</body></html>";
 
     //编写header
     std::string response_header{};
-    response_header += "Http/1.1 " + std::to_string(erro_num) + " " + msg + "\r\n";
+    response_header += "HTTP/1.1 " + std::to_string(erro_num) + " " + msg + "\r\n";//---严重的bug，HTTP四个字母必须全部大写，否则浏览器解析不出
     response_header += "Date: " + GetTime() + "\r\n";
     response_header += "Server: Hust---LLF\r\n";
     response_header += "Content-Type: text/html\r\n";
+    response_header += "Connection: close\r\n";//--漏了
     response_header += "Content-length: " + std::to_string(response_body.size())+"\r\n";
     response_header += "\r\n";
 
-    write_buffer=response_body+response_header;
+    write_buffer =response_header + response_body;//--bug 先是header，后是body
     return ;
 }
 
@@ -347,39 +315,85 @@ void HttpData::call_back_in()
 
 void HttpData::call_back_out()
 {
+    int fd=http_cha->Get_fd();
+    int data_sum=write_buffer.size()+1;
+    int write_sum=0;
+    bool full=false;//表示发送缓冲区是否已满
 
+    while(write_sum<data_sum)
+    {
+        int ret=WriteData(fd,write_buffer,full);
+        if(ret==-1)
+        {
+            //写数据出错，断开连接
+            call_back_rdhub();
+            return;
+        }
+
+        if( full && write_sum < data_sum)//如果发送缓冲区满了，但是数据还没发送完，则重新注册Epollout事件，等待下次读入。
+        {
+            //注册
+            Reset_Http_events(false);
+            //删除定时器，防止超时
+            belong_sub->get_theTimeWheel()->TimerWheel_Remove_Timer(http_timer);
+            //设置自己的定时器为空
+            http_timer= nullptr;
+            //返回
+            return ;
+        }
+        write_sum+=ret;
+    }
+    //发送完数据要重新注册Epollin，
+    Reset_Http_events(true);
+
+    //重置
+    Reset();
 }
 
 void HttpData::call_back_error()
 {
-
+    call_back_rdhub();
 }
 
 void HttpData::call_back_rdhub()
 {
-
+    //删除连接事件，事件器也删除
+    int fd=http_cha->Get_fd();
+    if(belong_sub->DELChanel(http_cha)) GlobalValue::Dec_Current_user_number();
+    //belong_sub->get_theTimeWheel()->TimerWheel_Remove_Timer(http_timer);
+    Getlogger()->info("fd{} connect rdhub",fd);
 }
 
 void HttpData::TimerTimeoutCallback()
 {
-
+    Getlogger()->info("fd{} http timeout",http_cha->Get_fd());
+    Set_HttpErrorMessage(http_cha->Get_fd(),408,"http time out");
+    call_back_out();
 }
 
 sub_state_ParseHTTP HttpData::Analyse_GetOrHead()
 {
     Write_Response_GeneralData();
 
-    std::string filename=mp["URL"].substr(mp["URL"].find_last_of('\\')+1);//最后一个斜杠之后的为文件名(注意，这里不包括斜杠)
+    std::string filename=mp["URL"].substr(mp["URL"].find_last_of('\\')+1);//最后一个斜杠之后的为文件名(注意，这里包括斜杠)
 
     //simple test
     //-----------
 
     //content-type字段
-    std::string content_type=SourceMap::Get_file_type(filename.substr(filename.find_last_of('.')));//根据文件名中的后缀写出字段
-    write_buffer += "content-type: " + content_type +"\r\n" ;
+   // std::string content_type=SourceMap::Get_file_type(filename.substr(filename.find_last_of('.')));//根据文件名中的后缀写出字段
+   //----------上面有bug，用户的请求可能不包含‘.’,可能会出错
+
+   auto pos=filename.find('.');
+   std::string content_type{};
+
+   if(pos<filename.size()) content_type=SourceMap::Get_file_type(filename.substr(pos));
+   else content_type=SourceMap::Get_file_type("default");
+
+   write_buffer += "content-type: " + content_type +"\r\n" ;
 
     //content-length字段
-    std::string file_position="../resource/" + filename;
+    std::string file_position="../resource" + filename;
     struct stat file_information;
     if(stat(file_position.c_str(),&file_information)<0)
     {
@@ -387,6 +401,7 @@ sub_state_ParseHTTP HttpData::Analyse_GetOrHead()
         Getlogger()->debug("fd {} not found {},404",http_cha->Get_fd(),filename);
         return analyse_error;
     }
+
     int lenth= file_information.st_size;
     write_buffer += "content-length: " + std::to_string(lenth) + "\r\n";
 

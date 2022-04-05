@@ -37,6 +37,11 @@ public:
         std::unique_lock<std::mutex> locker(usernumber_mtx);
         CurrentUserNumber++;
     }
+    static void Dec_Current_user_number()
+    {
+        std::unique_lock<std::mutex> locker(usernumber_mtx);
+        CurrentUserNumber--;
+    }
 };
 
 
