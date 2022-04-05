@@ -68,7 +68,7 @@ int ReadData(int fd,std::string &read_buffer,bool& is_disconn)
             else if(errno == EINTR) continue;
             else
             {
-                Getlogger()->error("ReadData failed to read data");
+                Getlogger()->error("fd{} ReadData failed to read data",fd);
                 is_disconn=true;
                 break;
             }
@@ -104,7 +104,7 @@ int WriteData(int fd,std::string& buffer,bool& full)
             }
             else
             {
-                Getlogger()->error("failed to write data to socket");
+                Getlogger()->error("failed to write data to socket{}  ___  {}", fd,strerror(errno));
                 return -1;
             }
         }
@@ -141,8 +141,31 @@ int Write_to_fd(int fd,const char* content,int length)
         pos+=write_once;
     }
     return write_num;
-
 }
+
+int Read_from_fd(int fd,const char* buffer,int length)
+{
+    int read_sum=0;
+    const char* pos=buffer;
+    while(true)
+    {
+        int read_once=read(fd,(void *)pos,length-read_sum);
+        if(read_once<0)
+        {
+            if(errno == EINTR) continue;//忽略系统中断
+            else if(errno == EAGAIN) return read_sum;//缓冲区满
+            else{
+                Getlogger()->error("read data from filefd {} error: {}", fd, strerror(errno));
+                return -1;                               //否则表示发生了错误，返回-1
+            }
+        }
+        read_sum+=read_once;
+        pos+=read_once;
+        if(read_once==0) return read_sum;
+    }
+    return read_sum;
+}
+
 
 
 

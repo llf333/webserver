@@ -111,13 +111,13 @@ bool TimeWheel::TimerWheel_Adjust_Timer(Timer* timer,std::chrono::seconds timeou
 void TimeWheel::tick()
 {
     //先把管道里的数据读了，避免堵住了
-    std::string buffer;
-    bool dis_conn=false;
-    int ret=ReadData(tick_d[0],buffer,dis_conn);
+     char buffer[128];
+    int ret=Read_from_fd(tick_d[0],buffer, strlen("tick\0"));
+
     if(ret<=0)
     {
         //打印失败日志
-        Getlogger()->error("in tick ,read data to buffer error", strerror(errno));
+        Getlogger()->error("in tick ,read data to buffer error  {} ，ret={}", strerror(errno),ret);
         return ;
     }
 

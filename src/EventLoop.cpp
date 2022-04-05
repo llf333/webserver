@@ -41,7 +41,7 @@ bool EventLoop::AddChanel(Chanel* CHNL)
     }
 
     //成功后，将该chanel添加到池里面
-    chanelpool[fd]=std::unique_ptr<Chanel>(CHNL);//又新建一个指针————注意资源管理
+    chanelpool[fd]=std::unique_ptr<Chanel>(CHNL);//又新建一个指针————注意资源管理——————————4/5好像是错的，这句话的意思是将指针用智能指针管理
 
     //如果还是连接socket,则将http数据存入池中
     // 并挂靠定时器
@@ -95,8 +95,10 @@ bool EventLoop::MODChanel(Chanel* CHNL,__uint32_t EV)
     return false;
 }
 
-bool EventLoop::DELChanel(Chanel* CHNL)
+bool EventLoop::DELChanel(Chanel* CHNL)//定时器也在这里面删除
 {
+    if(!CHNL) return false;
+
     int fd=CHNL->Get_fd();
     epoll_event ev;
     //推荐使用memset//bzero(&ev,sizeof ev);
@@ -107,17 +109,25 @@ bool EventLoop::DELChanel(Chanel* CHNL)
     if(epoll_ctl(epollfd,EPOLL_CTL_DEL,fd,&ev)==-1)
     {
         //日志输入删除失败
-        Getlogger()->error("failed to delete fd in epoll");
+        Getlogger()->error("failed to delete fd {} in epoll :   {}", fd,strerror((errno)));
+        if(CHNL->Get_holder()) std::cout<<fd<<" has holder"<<std::endl;
         return false;
     }
 
     if(CHNL->Get_holder())
     {
         //删除http池中的数据和定时器
+        if(CHNL->Get_holder()->Get_timer())
         get_theTimeWheel()->TimerWheel_Remove_Timer(CHNL->Get_holder()->Get_timer());
       //  httppool[fd]=nullptr;
+        if(CHNL->Get_holder())
+        delete CHNL->Get_holder();  //4/5，重大bug————长时间没判断出为什么会有莫名奇妙的fd值（特别大或者是负数），log中总是显示删除fd失败，写数据失败。
+                                    //怀疑是内存泄漏，于是从头到尾地明确了一下各个对象是什么时候被delete的，原版httpdata是用unique_ptr管理的，
+                                    // 但是我觉得在eventloop中存储httpdata的没有必要，因此此处需要手动删除。
     }
-    chanelpool[fd].reset(nullptr);
+
+    chanelpool[fd].reset(nullptr);//删除原始指针，将unique_ptr管理至nullptr
+
     return true;
 
 }

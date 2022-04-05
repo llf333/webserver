@@ -12,6 +12,8 @@
 class HttpData;
 
 class Chanel{
+    //Chanel在 void SERVER::CONNisComing() 中新建，时间轮监听tick也有一个，listen_chanel也是一个
+    //
 private:
     int fd;
     bool is_connect;
@@ -19,7 +21,7 @@ private:
     __uint32_t revents;//已就绪的事件集
     __uint32_t last_event;//记录上一次的防止重复修改
 
-    HttpData* holder;
+    HttpData* holder=nullptr;//----------什么时候删除的-----------要设置默认值
 
     using CALLBACK=std::function<void()>;
     CALLBACK read_handle;

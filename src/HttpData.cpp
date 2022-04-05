@@ -253,6 +253,7 @@ void HttpData::Reset()
     }
     else
     {
+        //std::cout<<1<<std::endl;
         call_back_rdhub();
         return ;
     }
@@ -296,7 +297,7 @@ void HttpData::call_back_in()
     //读数据到buffer中，然后利用状态机解析
     int fd=http_cha->Get_fd();
 
-    if(ReadData(fd,read_buffer,dis_conn)<=0 || dis_conn)
+    if(ReadData(fd,read_buffer,dis_conn)<0 || dis_conn)
     {
         Getlogger()->error("failed to read the data from the fd{} (http fd)",fd);
 
@@ -326,6 +327,7 @@ void HttpData::call_back_out()
         if(ret==-1)
         {
             //写数据出错，断开连接
+            std::cout<<"333"<<std::endl;
             call_back_rdhub();
             return;
         }
@@ -359,7 +361,10 @@ void HttpData::call_back_rdhub()
 {
     //删除连接事件，事件器也删除
     int fd=http_cha->Get_fd();
-    if(belong_sub->DELChanel(http_cha)) GlobalValue::Dec_Current_user_number();
+
+    if(belong_sub->DELChanel(http_cha))
+        GlobalValue::Dec_Current_user_number();
+
     //belong_sub->get_theTimeWheel()->TimerWheel_Remove_Timer(http_timer);
     Getlogger()->info("fd{} connect rdhub",fd);
 }

@@ -17,7 +17,8 @@ class HttpData;
  * @Turns 剩下多少圈
  * @PosInWheel 位于时间轮的哪个槽
  */
-class Timer
+class Timer //timer指针在bool TimeWheel::TimerWheel_Remove_Timer(Timer* timer)中删除
+        //在insert中新建
 {
 private:
     using CALLBACK=std::function<void()>;
@@ -27,13 +28,13 @@ private:
     //std::seconds Time_t;不用记录初始时间，在构造时直接传时间通过计算来构造,然后通过上面两个参数来记录实时时间
 
 public:
+    Timer(size_t pos,size_t turns);
+
     size_t Timer_GetPos()   {return PosInWheel;}
 
     size_t Timer_GetTurns() {return Turns;}
 
     void Timer_TurnsDecline() {Turns--;}
-
-    Timer(size_t pos,size_t turns);
 
     friend class TimeWheel;
 
@@ -57,7 +58,7 @@ private:
     size_t CurrentPos=0;//初始在第0个槽
     std::chrono::seconds Si;//一个槽代表经过一秒
 
-    Chanel* tick_chanel;//监听tick[0]的事件
+    Chanel* tick_chanel;//监听tick[0]的事件-----------什么时候删除
     int tick_d[2]{};// 用于tick时间轮的管道，tick[1]为写，tick[0]表示读
 
 private:

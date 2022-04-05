@@ -12,7 +12,7 @@ std::mutex SERVER::init_lock{};
 SERVER::SERVER(int pot, EventLoop* Main_R, Thread_Pool* T_P)
                 :port(pot),listen_fd(BindAndListen(port)),
                  server_main_Reactor(Main_R),server_thread_pool(T_P),
-                 listen_CH(new Chanel(listen_fd,true))
+                 listen_CH(new Chanel(listen_fd,false))//4/5监听socket不是连接socket
 {
     if(listen_fd == -1) exit(-1);
     setnonblocking(listen_fd);
@@ -80,8 +80,6 @@ void SERVER::CONNisComing()
             }
             return ;//bug----return应该写在外面
         }
-
-
 
         if(GlobalValue::CurrentUserNumber>=GlobalValue::TheMaxConnNumber)
         {

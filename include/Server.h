@@ -17,8 +17,6 @@ class Chanel;
 class Thread_Pool;
 class HttpData;
 
-
-
 class SERVER
 {
 private:

@@ -48,9 +48,9 @@ class HttpData
 {
 private:
     //chanel 和 eventloop 在Server.cpp中绑定，时间器在往时间轮添加时间器时绑定
-    Chanel* http_cha;
-    EventLoop* belong_sub;
-    Timer* http_timer;
+    Chanel* http_cha;//--------什么时候删除的----需要初始化
+    EventLoop* belong_sub;//---------什么时候删除的
+    Timer* http_timer;//-----------什么时候删除的
 
     bool dis_conn=false;
 
@@ -93,9 +93,5 @@ private:
     void call_back_rdhub();//断开连接
 
 };
-
-
-
-
 
 #endif //WEBSERVER_HTTPDATA_H
