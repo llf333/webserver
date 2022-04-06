@@ -23,7 +23,7 @@ void Chanel::CallRevents()
         //怀疑是内存泄漏，于是从头到尾地明确了一下各个对象是什么时候被delete的，原版httpdata是用unique_ptr管理的，
         // 但是我觉得在eventloop中存储httpdata的没有必要，因此手动删除了httpdata。
 
-        //上述处理后仍然有问题，在确定已经正确地删除了httpdata之后，仍然有莫名奇妙的fd值，怀疑是删了之后非法调用，最终改了这里，一次监听只处理一个事件。解决问题。但是理解得还不够透彻
+        //上述处理后仍然有问题，在确定已经正确地删除了httpdata之后，仍然有莫名奇妙的fd值，怀疑是删了之后非法调用，最终改了这里得以解决问题，一次监听只处理一个事件。但是理解得还不够透彻
         CallRdfunc();
     else if(this->revents & EPOLLOUT)
         CallWrfunc();
@@ -54,7 +54,7 @@ void Chanel::CallDiscfunc()
     else;//打印日志：还没注册
 }
 
-bool Chanel::IsEqualToLast()
+bool Chanel::IsEqualToLast()//llf Chanel在SetEvent后两个会不一样
 {
     __uint32_t tmp=last_event;
     last_event=Get_events();

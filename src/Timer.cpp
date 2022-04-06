@@ -25,6 +25,8 @@ TimeWheel::TimeWheel(size_t maxsize):SizeOfTW(maxsize),Si(GlobalValue::TimeWheel
 {
     slot=std::vector< std::list<Timer*> >(SizeOfTW,std::list<Timer*>());
 
+    /*创建一个管道，通过监听tick_fd_[0]可读事件的形式定时让时间轮tick一下*/
+    //llf 往tick_fd_[1]中写数据可以通知时间轮tick一下
     int res= pipe(tick_d);
     if(res==-1)
     {
@@ -40,10 +42,12 @@ TimeWheel::TimeWheel(size_t maxsize):SizeOfTW(maxsize),Si(GlobalValue::TimeWheel
 }
 TimeWheel::~TimeWheel()
 {
+    /*delete所有timer*/
     for(auto& l:slot)
         for(auto& timer:l)
             delete timer;
 
+    //关闭管道
     close(tick_d[0]);
     close(tick_d[1]);
 }
@@ -62,7 +66,7 @@ Timer* TimeWheel::TimeWheel_insert_Timer(std::chrono::seconds timeout,HttpData* 
     }
     Timer *Temp=nullptr;
     Temp = new Timer(pos, cycle);
-    slot[pos].push_back(Temp);
+    slot[pos].push_back(Temp);//插入到对应的槽当中
 
     //http事件挂靠定时器,并设置超时回调函数
     if(holder)
@@ -96,15 +100,14 @@ bool TimeWheel::TimerWheel_Adjust_Timer(Timer* timer,std::chrono::seconds timeou
         pos=(CurrentPos+(timeout/Si)%SizeOfTW)%SizeOfTW;
     }
 
-    for(auto& it:slot[timer->PosInWheel])
-    {
-        if(it==timer){
-            it->PosInWheel=pos;
-            it->Turns=cycle;
-            return true;
-        }
-    }
-    return false;
+    //有错，槽的位置可能发生改变
+    int old_pos=timer->Timer_GetPos();
+    slot[old_pos].remove(timer);//移除但不要delete
+    timer->Timer_SetPos(pos);
+    timer->Timer_SetTurns(cycle);
+    slot[pos].push_back(timer);//重新插入到对应位置
+
+    return true;
 }
 
 //2022/03/12
@@ -130,20 +133,23 @@ void TimeWheel::tick()
             continue;
         }
 
+        /*圈数大于0说明还未到触发时间*/
         if(p->Timer_GetTurns()>0)
         {
             p->Timer_TurnsDecline();
             ++it;
             continue;
         }
-        if(p->Timer_GetTurns()==0)
+
+        //否则说明到触发时间了
+        else
         {
             p->ExecuteCallbackFunc();
             slot[CurrentPos].erase(it);
         }
     }
 
-    CurrentPos=(CurrentPos+1)%SizeOfTW;
+    CurrentPos=(CurrentPos+1)%SizeOfTW; //指向下一个槽
 }
 
 

@@ -20,6 +20,71 @@ std::chrono::seconds GlobalValue::keep_alive_time=std::chrono::seconds(180);
 int GlobalValue::BufferMaxSize=2048;
 int GlobalValue::TimeWheel_PerSlotTime=1;
 
+char GlobalValue::Favicon[555] = {//复制别人的echo test，至于是什么还不清楚
+        '\x89', 'P',    'N',    'G',    '\xD',  '\xA',  '\x1A', '\xA',  '\x0',
+        '\x0',  '\x0',  '\xD',  'I',    'H',    'D',    'R',    '\x0',  '\x0',
+        '\x0',  '\x10', '\x0',  '\x0',  '\x0',  '\x10', '\x8',  '\x6',  '\x0',
+        '\x0',  '\x0',  '\x1F', '\xF3', '\xFF', 'a',    '\x0',  '\x0',  '\x0',
+        '\x19', 't',    'E',    'X',    't',    'S',    'o',    'f',    't',
+        'w',    'a',    'r',    'e',    '\x0',  'A',    'd',    'o',    'b',
+        'e',    '\x20', 'I',    'm',    'a',    'g',    'e',    'R',    'e',
+        'a',    'd',    'y',    'q',    '\xC9', 'e',    '\x3C', '\x0',  '\x0',
+        '\x1',  '\xCD', 'I',    'D',    'A',    'T',    'x',    '\xDA', '\x94',
+        '\x93', '9',    'H',    '\x3',  'A',    '\x14', '\x86', '\xFF', '\x5D',
+        'b',    '\xA7', '\x4',  'R',    '\xC4', 'm',    '\x22', '\x1E', '\xA0',
+        'F',    '\x24', '\x8',  '\x16', '\x16', 'v',    '\xA',  '6',    '\xBA',
+        'J',    '\x9A', '\x80', '\x8',  'A',    '\xB4', 'q',    '\x85', 'X',
+        '\x89', 'G',    '\xB0', 'I',    '\xA9', 'Q',    '\x24', '\xCD', '\xA6',
+        '\x8',  '\xA4', 'H',    'c',    '\x91', 'B',    '\xB',  '\xAF', 'V',
+        '\xC1', 'F',    '\xB4', '\x15', '\xCF', '\x22', 'X',    '\x98', '\xB',
+        'T',    'H',    '\x8A', 'd',    '\x93', '\x8D', '\xFB', 'F',    'g',
+        '\xC9', '\x1A', '\x14', '\x7D', '\xF0', 'f',    'v',    'f',    '\xDF',
+        '\x7C', '\xEF', '\xE7', 'g',    'F',    '\xA8', '\xD5', 'j',    'H',
+        '\x24', '\x12', '\x2A', '\x0',  '\x5',  '\xBF', 'G',    '\xD4', '\xEF',
+        '\xF7', '\x2F', '6',    '\xEC', '\x12', '\x20', '\x1E', '\x8F', '\xD7',
+        '\xAA', '\xD5', '\xEA', '\xAF', 'I',    '5',    'F',    '\xAA', 'T',
+        '\x5F', '\x9F', '\x22', 'A',    '\x2A', '\x95', '\xA',  '\x83', '\xE5',
+        'r',    '9',    'd',    '\xB3', 'Y',    '\x96', '\x99', 'L',    '\x6',
+        '\xE9', 't',    '\x9A', '\x25', '\x85', '\x2C', '\xCB', 'T',    '\xA7',
+        '\xC4', 'b',    '1',    '\xB5', '\x5E', '\x0',  '\x3',  'h',    '\x9A',
+        '\xC6', '\x16', '\x82', '\x20', 'X',    'R',    '\x14', 'E',    '6',
+        'S',    '\x94', '\xCB', 'e',    'x',    '\xBD', '\x5E', '\xAA', 'U',
+        'T',    '\x23', 'L',    '\xC0', '\xE0', '\xE2', '\xC1', '\x8F', '\x0',
+        '\x9E', '\xBC', '\x9',  'A',    '\x7C', '\x3E', '\x1F', '\x83', 'D',
+        '\x22', '\x11', '\xD5', 'T',    '\x40', '\x3F', '8',    '\x80', 'w',
+        '\xE5', '3',    '\x7',  '\xB8', '\x5C', '\x2E', 'H',    '\x92', '\x4',
+        '\x87', '\xC3', '\x81', '\x40', '\x20', '\x40', 'g',    '\x98', '\xE9',
+        '6',    '\x1A', '\xA6', 'g',    '\x15', '\x4',  '\xE3', '\xD7', '\xC8',
+        '\xBD', '\x15', '\xE1', 'i',    '\xB7', 'C',    '\xAB', '\xEA', 'x',
+        '\x2F', 'j',    'X',    '\x92', '\xBB', '\x18', '\x20', '\x9F', '\xCF',
+        '3',    '\xC3', '\xB8', '\xE9', 'N',    '\xA7', '\xD3', 'l',    'J',
+        '\x0',  'i',    '6',    '\x7C', '\x8E', '\xE1', '\xFE', 'V',    '\x84',
+        '\xE7', '\x3C', '\x9F', 'r',    '\x2B', '\x3A', 'B',    '\x7B', '7',
+        'f',    'w',    '\xAE', '\x8E', '\xE',  '\xF3', '\xBD', 'R',    '\xA9',
+        'd',    '\x2',  'B',    '\xAF', '\x85', '2',    'f',    'F',    '\xBA',
+        '\xC',  '\xD9', '\x9F', '\x1D', '\x9A', 'l',    '\x22', '\xE6', '\xC7',
+        '\x3A', '\x2C', '\x80', '\xEF', '\xC1', '\x15', '\x90', '\x7',  '\x93',
+        '\xA2', '\x28', '\xA0', 'S',    'j',    '\xB1', '\xB8', '\xDF', '\x29',
+        '5',    'C',    '\xE',  '\x3F', 'X',    '\xFC', '\x98', '\xDA', 'y',
+        'j',    'P',    '\x40', '\x0',  '\x87', '\xAE', '\x1B', '\x17', 'B',
+        '\xB4', '\x3A', '\x3F', '\xBE', 'y',    '\xC7', '\xA',  '\x26', '\xB6',
+        '\xEE', '\xD9', '\x9A', '\x60', '\x14', '\x93', '\xDB', '\x8F', '\xD',
+        '\xA',  '\x2E', '\xE9', '\x23', '\x95', '\x29', 'X',    '\x0',  '\x27',
+        '\xEB', 'n',    'V',    'p',    '\xBC', '\xD6', '\xCB', '\xD6', 'G',
+        '\xAB', '\x3D', 'l',    '\x7D', '\xB8', '\xD2', '\xDD', '\xA0', '\x60',
+        '\x83', '\xBA', '\xEF', '\x5F', '\xA4', '\xEA', '\xCC', '\x2',  'N',
+        '\xAE', '\x5E', 'p',    '\x1A', '\xEC', '\xB3', '\x40', '9',    '\xAC',
+        '\xFE', '\xF2', '\x91', '\x89', 'g',    '\x91', '\x85', '\x21', '\xA8',
+        '\x87', '\xB7', 'X',    '\x7E', '\x7E', '\x85', '\xBB', '\xCD', 'N',
+        'N',    'b',    't',    '\x40', '\xFA', '\x93', '\x89', '\xEC', '\x1E',
+        '\xEC', '\x86', '\x2',  'H',    '\x26', '\x93', '\xD0', 'u',    '\x1D',
+        '\x7F', '\x9',  '2',    '\x95', '\xBF', '\x1F', '\xDB', '\xD7', 'c',
+        '\x8A', '\x1A', '\xF7', '\x5C', '\xC1', '\xFF', '\x22', 'J',    '\xC3',
+        '\x87', '\x0',  '\x3',  '\x0',  'K',    '\xBB', '\xF8', '\xD6', '\x2A',
+        'v',    '\x98', 'I',    '\x0',  '\x0',  '\x0',  '\x0',  'I',    'E',
+        'N',    'D',    '\xAE', 'B',    '\x60', '\x82',
+};
+
 
 std::string GetTime()
 {
@@ -143,7 +208,7 @@ int Write_to_fd(int fd,const char* content,int length)
     return write_num;
 }
 
-int Read_from_fd(int fd,const char* buffer,int length)
+int Read_from_fd(int fd,const char* buffer,int length)//read和write最好配套使用，否则会出现奇怪的问题
 {
     int read_sum=0;
     const char* pos=buffer;
@@ -167,12 +232,9 @@ int Read_from_fd(int fd,const char* buffer,int length)
 }
 
 
-
-
-
 std::optional<std::tuple<int,int,std::string>> AnalyseCommandLine(int argc,char* argv[])
 {
-    const char* str="p:s:l:";
+    const char* str="p:s:l:";//llf 字符后面有一个冒号表示必须带参数，两个冒号表示参数是可选的
     int res;
     int port,subReactorSize;
     std::string log_path;
@@ -214,7 +276,6 @@ std::shared_ptr<spdlog::logger> Getlogger(std::string path)
     }
     catch (const spdlog::spdlog_ex& ex)
     {
-        std::cout<<"333"<<std::endl;
         std::cout << "Log initialization failed: " << ex.what() << std::endl;
     }
 
@@ -232,7 +293,9 @@ int BindAndListen(int pot)
         return -1;
     }
 
-    //设置地址重用
+    /*设置地址重用，实现端口复用，一般服务器都需要设置*/
+    //llf socket关闭之后，操作系统不会立即收回对端口的控制权，而是要经历一个等待阶段。此时对这个端口绑定就会出错。想要立即进行绑定，就必须先设置SO_REUSEADDR.
+    //  或者在关闭socket的时候，使用setsockopt设置SO_REUSEADDR。才会消除等待时间。
     bool reuse=true;
     int res= setsockopt(listenfd,SOL_SOCKET,SO_REUSEADDR,reinterpret_cast<void *>(reuse),sizeof reuse);
     if(!res)
@@ -246,9 +309,14 @@ int BindAndListen(int pot)
     struct sockaddr_in address{};
     bzero(&address,sizeof address);
     address.sin_family=AF_INET;
+    /*!
+        INADDR_ANY泛指本机的意思。主要是考虑到主机具有多个网卡的情况。
+        不管数据从哪个网卡过来，只要是绑定的端口号过来的数据，都可以接收。
+     */
     address.sin_addr.s_addr=htonl(INADDR_ANY);
     address.sin_port=htons(pot);
 
+    /*绑定地址*/
     ret=bind(listenfd,reinterpret_cast<const sockaddr*>(&address),sizeof address);
     if(ret==-1)
     {
@@ -256,8 +324,16 @@ int BindAndListen(int pot)
         close(listenfd);
         return -1;
     }
-
-    ret=listen(listenfd,5000);
+    /*!
+      从内核2.2版本之后，listen函数的backlog参数表示的是全连接的数量上限。
+      所谓全连接，指的是完成了tcp三次握手处于establish状态的连接。也就是
+      说，服务器能够同时与backlog个客户端进行tcp握手以建立连接，accept队
+      列的长度在任何时候都最多只能为backlog。在5.4版本之后backlog的默认最
+      大值为4096(定义在/proc/sys/net/core/somaxconn)。显然，backlog与
+      服务器的最大并发连接数量没有直接的关系，只会影响服务器允许同时发起连
+      接的客户端的数量。
+     */
+    ret=listen(listenfd,2048);//listen的第二个参数是什么含义
     if(ret==-1)
     {
         Getlogger()->error("faied to listen listenfd ", strerror(errno));

@@ -12,7 +12,7 @@
 class HttpData;
 
 class Chanel{
-    //Chanel在 void SERVER::CONNisComing() 中新建，时间轮监听tick也有一个，listen_chanel也是一个
+    //Chanel在 void SERVER::CONNisComing() 中新建，每个时间轮监听tick也有一个，listen_chanel也有一个
     //
 private:
     int fd;
@@ -40,16 +40,21 @@ public:
     void CallRevents();
 
     __uint32_t Get_events(){return events;}
+
+    //设置感兴趣事件
     void Set_events(__uint32_t evnt) {events=evnt;}
 
+    //设置已就绪事件（根据epoll_wait的结果设置）
     void Set_revents(__uint32_t revnt) {revents=revnt;}
 
     int Get_fd() {return fd;}
 
     HttpData* Get_holder(){return holder;}
+
     void Set_holder(HttpData* holder_){holder=holder_;}
 
     bool Get_isconn(){return is_connect;};
+
     bool IsEqualToLast();
 
 private:

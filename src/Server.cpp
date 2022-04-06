@@ -20,12 +20,23 @@ SERVER::SERVER(int pot, EventLoop* Main_R, Thread_Pool* T_P)
 
 SERVER:: ~SERVER()
 {
-    //资源管理还未整理
+    //llf 4/6 资源管理整理：
+    /*！
+     * 资源管理的原则是需要留意带指针的对象
+     * static SERVER* service              在主函数分配，由主函数管理
+     * Chanel* listen_CH                   Chanel通常由Reactor管理，有两种途径，分别是：Reactor中DELChanel函数删除，以及 Reactor析构时自动删除（采用了unique_ptr的数组）
+     *                                     此处交由mainReactor管理
+     * Thread_Pool* server_thread_pool     在主函数分配，由主函数管理
+     * SubReactors                         使用智能指针在析构时自动管理子Reactor
+     */
+
+
 }
 
 void SERVER::Server_Start()
 {
-    listen_CH->Set_events(EPOLLIN | EPOLLERR);//监听socket监听可读事件和异常事件
+    /*对监听socket监听可读以及异常事件*/
+    listen_CH->Set_events(EPOLLIN | EPOLLERR);
     listen_CH->Register_ErHandle([=]{ERRisComing();});
     listen_CH->Register_RdHandle([=] {CONNisComing();});
 
@@ -33,15 +44,18 @@ void SERVER::Server_Start()
 
     //给线程池中的任务队列添加任务，任务是跑子Reactor，每个线程对应一个子Reactor
     auto subreactor_size=server_thread_pool->sizeofpoll;
-    for(decltype(subreactor_size) i =0;i<subreactor_size;++i)
+    for(decltype(subreactor_size) i =0;i<subreactor_size;++i)//llf 线程池有多大，开几个subReactor
     {
+        /*HttpServer和ThreadPool需要共享SubReactor对象，故这里使用shared_ptr*/
         std::shared_ptr<EventLoop> sub(new EventLoop(false));
         if(!sub)
         {
             Getlogger()->warn("fail to creat a subreactor", strerror(errno));
             continue;
         }
-        SubReactors.emplace_back(sub);
+        SubReactors.emplace_back(sub);//llf 记录子Reactor
+
+        //??????llf 在线程池中添加任务（任务是跑子Reactor），等号表示值捕获，函数返回结果存在哪儿？————future中包装的是Void，所以不用获取
         server_thread_pool->Add_task([=]{sub->StartLoop();});//每个线程的任务是跑SubReatcor
         timeWheel_PipeOfWrite.emplace_back(sub->get_theTimeWheel()->Get_1tick());//保存每个时间轮的tick管道写端，往里面写数据意味着tick一下
     }
@@ -67,8 +81,9 @@ void SERVER::CONNisComing()
 {
     struct sockaddr_in client_address;
     socklen_t client_addrlen=sizeof(client_address);
-    while(true)
+    while(true)//ET模式，每次都要接受完，因此使用while循环将accept包住，保证一个可读事件来临，处理完全部的连接请求
     {
+        //参考https://www.bianchengquan.com/article/563552.html
         int connfd=accept(listen_fd,reinterpret_cast<struct sockaddr*>(&client_address),&client_addrlen);
 
         if(connfd<0)
@@ -81,6 +96,7 @@ void SERVER::CONNisComing()
             return ;//bug----return应该写在外面
         }
 
+        //限制服务器的最大并发连接数
         if(GlobalValue::CurrentUserNumber>=GlobalValue::TheMaxConnNumber)
         {
             close(connfd);
@@ -109,7 +125,7 @@ void SERVER::CONNisComing()
          vectored I/O（writev接口）也是个不错的选择。
          */
 
-//bug 设置该选项的enable必须使用int，char类型不行，每个控制选项的类型不同，查表而知。
+        //bug 设置该选项的enable必须使用int，char类型不行，每个控制选项的类型不同，查表而知。
         const int enable=1;
         int ret=setsockopt(connfd,IPPROTO_TCP,TCP_NODELAY,&enable,sizeof (int));
 
@@ -128,6 +144,7 @@ void SERVER::CONNisComing()
         //注意这里还没加入子Reactor的httpdata池中，也没设置holder————已经在addchanel中加入了
 
         Chanel* newconn(new Chanel(connfd, true));
+
         /*!
             Http连接的sokcet需要监听可读、可写、断开连接以及错误事件。
             但是需要注意的是，不要一开始就注册可写事件，因为只要fd只要不是阻塞的它就是可写的。
@@ -136,7 +153,7 @@ void SERVER::CONNisComing()
          */
         newconn->Set_events(EPOLLIN | EPOLLRDHUP | EPOLLERR);
 
-
+        //将连接socket分发给事件最少的SubReactor
         int least_conn_num=SubReactors[0]->Get_Num_Conn(),idx=0;
         for(int i=0;i<SubReactors.size();++i)
         {
@@ -147,13 +164,14 @@ void SERVER::CONNisComing()
             }
         }
 
+        //必须先设置Holder再将该连接socket加入到事件池中
         HttpData* newholder=new HttpData(newconn,SubReactors[idx].get());//chanel的四个回调函数在这里面绑定
         newconn->Set_holder(newholder);
 
         //分发
         SubReactors[idx]->AddChanel(newconn);
 
-        Getlogger()->info("SubReactor {} add a connect :{}",idx,connfd);
+        Getlogger()->info("SubReactor {} add a connect :{}, CurrentUserNumber: {}",idx,connfd,GlobalValue::GetUserNUmber());
 
        // std::cout<<"get a new conn222"<<std::endl;
     }

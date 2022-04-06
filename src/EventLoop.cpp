@@ -6,6 +6,20 @@
 EventLoop::EventLoop(bool ismain): is_mainReactor(ismain),epollfd(epoll_create1(EPOLL_CLOEXEC))
                                    ,wheelOFloop(new TimeWheel(12)),stop(true)//初始化时是停止的
 {
+    /*!
+     *
+        注意，这里没有使用epoll_create。这是因为，epoll_create函数的size参数只是一个参考
+        实际上，内核epoll事件表是会动态增长的，因此没有必要使用epoll_create了。并且只有Sub
+        Reactor才需要监听管道的读端
+     */
+
+    //* llf
+    // EPOLL_CLOEXEC  在文件描述符上面设置执行时关闭（FD_CLOEXEC）标志描述符。
+
+    //llf 时间轮的事件可读时表示时间轮走一格，即tick_fd[0]可读
+    //下面添加的事件的fd就是tick_fd[0]，其可读回调函数是tick一下时间轮
+    //那什么时候可读呢？——在main.cpp中当信号alarm到达时会往管道tick_fd[1]中写数据，此时就可读了
+
     if(!AddChanel(wheelOFloop->Get_tickChanel()) || epollfd==-1)//将该Reactor的时间轮的“监听tick[0]的事件”添加到事件池中
     {
         Getlogger()->error("create reactor erro : {}", strerror(errno));
@@ -17,13 +31,16 @@ EventLoop::EventLoop(bool ismain): is_mainReactor(ismain),epollfd(epoll_create1(
 EventLoop::~EventLoop()
 {
     stop=true;
-    delete wheelOFloop;
+    delete wheelOFloop;//时间轮由自己管理
     close(epollfd);
 }
 
 //将要监听的事件添加到epoll中
 bool EventLoop::AddChanel(Chanel* CHNL)
 {
+    //空指针则添加失败，连接socket但是没有holder则添加失败
+    if(!CHNL || (CHNL->Get_isconn()&&!CHNL->Get_holder())) return false;
+
     int fd=CHNL->Get_fd();
     epoll_event ev{};
 
@@ -51,7 +68,7 @@ bool EventLoop::AddChanel(Chanel* CHNL)
         {
             //httppool[fd]=std::shared_ptr<HttpData>(CHNL->Get_holder());
 
-            //应该把httpdata和timer关联起来
+            //把httpdata和timer关联起来,在该函数中新建了定时器
             Timer* res=wheelOFloop->TimeWheel_insert_Timer(GlobalValue::HttpHEADTime,CHNL->Get_holder());
             if(!res)
             {
@@ -74,11 +91,13 @@ bool EventLoop::AddChanel(Chanel* CHNL)
 
 bool EventLoop::MODChanel(Chanel* CHNL,__uint32_t EV)
 {
+    if(!CHNL) return false;
+
     if(!CHNL->IsEqualToLast())//防止重复修改
     {
         int fd=CHNL->Get_fd();
         epoll_event ev;
-        bzero(&ev,sizeof ev);
+        memset(&ev,0,sizeof ev);
         ev.data.fd=fd;
         ev.events=EV | EPOLLET;
 
@@ -118,15 +137,22 @@ bool EventLoop::DELChanel(Chanel* CHNL)//定时器也在这里面删除
     {
         //删除http池中的数据和定时器
         if(CHNL->Get_holder()->Get_timer())
-        get_theTimeWheel()->TimerWheel_Remove_Timer(CHNL->Get_holder()->Get_timer());
-      //  httppool[fd]=nullptr;
+        get_theTimeWheel()->TimerWheel_Remove_Timer(CHNL->Get_holder()->Get_timer());//定时器在这里面detele掉
+        //  httppool[fd]=nullptr;
         if(CHNL->Get_holder())
         delete CHNL->Get_holder();  //4/5，重大bug————长时间没判断出为什么会有莫名奇妙的fd值（特别大或者是负数），log中总是显示删除fd失败，写数据失败。
                                     //怀疑是内存泄漏，于是从头到尾地明确了一下各个对象是什么时候被delete的，原版httpdata是用unique_ptr管理的，
                                     // 但是我觉得在eventloop中存储httpdata的没有必要，因此此处需要手动删除。
+
+        //更改连接数量
+        {
+            std::unique_lock<std::mutex> locker(NUMmtx);
+            NUM_Conn--;
+        }
+
     }
 
-    chanelpool[fd].reset(nullptr);//删除原始指针，将unique_ptr管理至nullptr
+    chanelpool[fd].reset(nullptr);//删除原始指针，将unique_ptr关联至nullptr
 
     return true;
 
@@ -167,8 +193,8 @@ void EventLoop::ListenAndCall()
             Chanel* chanelnow=chanelpool[sockfd].get();
             if(chanelnow)
             {
-                chanelnow->Set_revents(events[i].events);
-                chanelnow->CallRevents();
+                chanelnow->Set_revents(events[i].events);//设置就绪事件
+                chanelnow->CallRevents();//并调用相应回调函数
             }
             else
             {
@@ -182,6 +208,11 @@ void EventLoop::ListenAndCall()
 void EventLoop::StopLoop()
 {
     stop=true;
+    for(auto& it:chanelpool)
+    {
+        if(it) DELChanel(it.get());//删除所有事件
+    }
+
 }
 
 int EventLoop::Get_Num_Conn()

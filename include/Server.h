@@ -23,8 +23,6 @@ private:
     static SERVER* service;//使用单例饿汉模式，注意全局只能初始化一次，懒汉模式线程不安全
     static std::mutex init_lock;
 
-    SERVER(int pot, EventLoop* mainreactor, Thread_Pool* T_P);
-
     int port;//这里刻意地调整了一下顺序以防出错
     int listen_fd;
     Chanel* listen_CH;
@@ -33,8 +31,10 @@ private:
     std::vector<std::shared_ptr<EventLoop>> SubReactors;//这里使用智能指针在析构时自动管理子Reactor
     Thread_Pool* server_thread_pool;
 
+    SERVER(int pot, EventLoop* mainreactor, Thread_Pool* T_P);//私有构造函数
 public:
     std::vector<int> timeWheel_PipeOfWrite{};
+
 public:
     void Server_Start();
     void Server_Stop();
@@ -55,10 +55,8 @@ public:
     }
 
 private:
-    void ERRisComing();
+    void ERRisComing();//监听socket就只监听两种事件
     void CONNisComing();
 };
-
-
 
 #endif //WEBSERVER_SERVER_H

@@ -18,7 +18,7 @@ class HttpData;
  * @PosInWheel 位于时间轮的哪个槽
  */
 class Timer //timer指针在bool TimeWheel::TimerWheel_Remove_Timer(Timer* timer)中删除
-        //在insert中新建
+            //在insert中新建
 {
 private:
     using CALLBACK=std::function<void()>;
@@ -30,15 +30,17 @@ private:
 public:
     Timer(size_t pos,size_t turns);
 
-    size_t Timer_GetPos()   {return PosInWheel;}
+    size_t Timer_GetPos()                           {return PosInWheel;}
+    void Timer_SetPos(size_t new_pos)               {PosInWheel=new_pos;}
 
-    size_t Timer_GetTurns() {return Turns;}
+    size_t Timer_GetTurns()                         {return Turns;}
+    void Timer_SetTurns(size_t new_turns)           {Turns=new_turns;}
 
-    void Timer_TurnsDecline() {Turns--;}
+    void Timer_TurnsDecline()                       {Turns--;}
 
     friend class TimeWheel;
 
-    void Register_CallbackFunc(CALLBACK func) {FuncOfTimeUp=func;}
+    void Register_CallbackFunc(CALLBACK func)       {FuncOfTimeUp=func;}
 
 private:
     void ExecuteCallbackFunc();//之所以是私有的，因为只能通过友元时间轮来调用
@@ -69,6 +71,7 @@ public:
     TimeWheel(const TimeWheel& wheel) =delete;
     TimeWheel& operator=(const TimeWheel& wheel) =delete;
     ~TimeWheel();
+
     Timer* TimeWheel_insert_Timer(std::chrono::seconds timeout,HttpData* holder);
     bool TimerWheel_Remove_Timer(Timer* timer);
     bool TimerWheel_Adjust_Timer(Timer* timer,std::chrono::seconds timeout);
