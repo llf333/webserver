@@ -122,13 +122,16 @@ int main(int argc,char* argv[])//llf argv[0]表示程序的名称
     Thread_Pool* main_thread_pool=new Thread_Pool(std::get<1>(*res));
     EventLoop* main_reactor=new EventLoop(true);
 
-    alarm(GlobalValue::TimeWheel_PerSlotTime);//这个时间应该是时间轮每一槽经过的时间
+
 
     //单例模式
     main_server=SERVER::Get_the_service(std::get<0>(*res),main_reactor,main_thread_pool);
 
     /*服务器开始运行*/
     main_server->Server_Start();
+
+    //放在Reactor之前时间会更精准
+    alarm(GlobalValue::TimeWheel_PerSlotTime);//这个时间应该是时间轮每一槽经过的时间
     main_reactor->StartLoop();
     return 0;
 }

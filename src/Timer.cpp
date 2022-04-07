@@ -100,7 +100,7 @@ bool TimeWheel::TimerWheel_Adjust_Timer(Timer* timer,std::chrono::seconds timeou
         pos=(CurrentPos+(timeout/Si)%SizeOfTW)%SizeOfTW;
     }
 
-    //有错，槽的位置可能发生改变
+    //槽的位置可能发生改变
     int old_pos=timer->Timer_GetPos();
     slot[old_pos].remove(timer);//移除但不要delete
     timer->Timer_SetPos(pos);

@@ -14,10 +14,15 @@ Chanel::~Chanel()
 void Chanel::CallRevents()
 {
     if(this->revents & EPOLLERR)
-    {
         CallErfunc();
-        return ;
-    }
+
+    else if(this->revents & EPOLLOUT)
+        CallWrfunc();
+
+    else if(this->revents & EPOLLRDHUP) //4/7日，在修复长连接出错时调换了顺序，原顺序是 err-in-out-rdhub
+                                        //                               修改为  err-out-rdhub-in
+        CallDiscfunc();
+
     else if(this->revents & EPOLLIN)
         //4/5，重大bug————长时间没判断出为什么会有莫名奇妙的fd值（特别大或者是负数），log中总是显示删除fd失败，写数据失败。
         //怀疑是内存泄漏，于是从头到尾地明确了一下各个对象是什么时候被delete的，原版httpdata是用unique_ptr管理的，
@@ -25,10 +30,10 @@ void Chanel::CallRevents()
 
         //上述处理后仍然有问题，在确定已经正确地删除了httpdata之后，仍然有莫名奇妙的fd值，怀疑是删了之后非法调用，最终改了这里得以解决问题，一次监听只处理一个事件。但是理解得还不够透彻
         CallRdfunc();
-    else if(this->revents & EPOLLOUT)
-        CallWrfunc();
-    else if(this->revents & EPOLLRDHUP)
-        CallDiscfunc();
+
+
+
+
 }
 
 void Chanel::CallRdfunc()

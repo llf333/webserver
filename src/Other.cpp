@@ -16,7 +16,7 @@ int GlobalValue::CurrentUserNumber=0;
 std::mutex GlobalValue::usernumber_mtx{};
 std::chrono::seconds GlobalValue::HttpHEADTime=std::chrono::seconds(60);
 std::chrono::seconds GlobalValue::HttpPostBodyTime=std::chrono::seconds(60);
-std::chrono::seconds GlobalValue::keep_alive_time=std::chrono::seconds(180);
+std::chrono::seconds GlobalValue::keep_alive_time=std::chrono::seconds(150);
 int GlobalValue::BufferMaxSize=2048;
 int GlobalValue::TimeWheel_PerSlotTime=1;
 
@@ -296,9 +296,9 @@ int BindAndListen(int pot)
     /*设置地址重用，实现端口复用，一般服务器都需要设置*/
     //llf socket关闭之后，操作系统不会立即收回对端口的控制权，而是要经历一个等待阶段。此时对这个端口绑定就会出错。想要立即进行绑定，就必须先设置SO_REUSEADDR.
     //  或者在关闭socket的时候，使用setsockopt设置SO_REUSEADDR。才会消除等待时间。
-    bool reuse=true;
-    int res= setsockopt(listenfd,SOL_SOCKET,SO_REUSEADDR,reinterpret_cast<void *>(reuse),sizeof reuse);
-    if(!res)
+    int reuse= 1;
+    int res= setsockopt(listenfd,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof reuse);
+    if(res == -1)
     {
         Getlogger()->error("faied to set listenfd SO_REUSEADDR", strerror(errno));
         close(listenfd);

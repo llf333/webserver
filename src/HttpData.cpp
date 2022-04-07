@@ -402,7 +402,7 @@ void HttpData::call_back_rdhub()
         GlobalValue::Dec_Current_user_number();
 
     //belong_sub->get_theTimeWheel()->TimerWheel_Remove_Timer(http_timer);
-    Getlogger()->info("fd{} connect rdhub",fd);
+    Getlogger()->info("Client {} disconnect, current user number: {}", fd, GlobalValue::GetUserNUmber());
 }
 
 void HttpData::TimerTimeoutCallback()
@@ -422,21 +422,21 @@ sub_state_ParseHTTP HttpData::Analyse_GetOrHead()
     std::string filename=mp["URL"].substr(mp["URL"].find_last_of('/')+1);
 
     //echo test-------------用于webbench
-//    if(filename == "hello")
-//    {
-//        write_buffer += "content-type: " + std::string("text/html\r\n") +
-//                         std::string("content-length: 10\r\n\r\n")+
-//                         std::string("Hello Word");
-//        return analyse_success;
-//    }
-//
-//    if(filename == "favicon.ico")
-//    {
-//        write_buffer += "content-type: " + std::string("image/png\r\n") +
-//                        std::string("content-length: ") + std::to_string(sizeof(GlobalValue::Favicon)) +
-//                        std::string("\r\n\r\n") + std::string(GlobalValue::Favicon);
-//        return analyse_success;
-//    }
+    if(filename == "hello")
+    {
+        write_buffer += "content-type: " + std::string("text/html\r\n") +
+                         std::string("content-length: 10\r\n\r\n")+
+                         std::string("Hello Word");
+        return analyse_success;
+    }
+
+    if(filename == "favicon.ico")
+    {
+        write_buffer += "content-type: " + std::string("image/png\r\n") +
+                        std::string("content-length: ") + std::to_string(sizeof(GlobalValue::Favicon)) +
+                        std::string("\r\n\r\n") + std::string(GlobalValue::Favicon);
+        return analyse_success;
+    }
 
     //content-type字段
    // std::string content_type=SourceMap::Get_file_type(filename.substr(filename.find_last_of('.')));//根据文件名中的后缀写出字段

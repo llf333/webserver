@@ -128,7 +128,7 @@ bool EventLoop::DELChanel(Chanel* CHNL)//定时器也在这里面删除
     if(epoll_ctl(epollfd,EPOLL_CTL_DEL,fd,&ev)==-1)
     {
         //日志输入删除失败
-        Getlogger()->error("failed to delete fd {} in epoll :   {}", fd,strerror((errno)));
+        Getlogger()->error("failed to delete fd {} in epoll:  {} ----ismainReactor? {}", fd,strerror((errno)),(int)is_mainReactor);
         if(CHNL->Get_holder()) std::cout<<fd<<" has holder"<<std::endl;
         return false;
     }
@@ -172,6 +172,7 @@ void EventLoop::ListenAndCall()
 {
     while(!stop)
     {
+
         int number= epoll_wait(epollfd,events,PerEpollMaxEvent,Epoll_timeout);
         if(number<0&& errno !=EINTR)
         {
@@ -194,7 +195,8 @@ void EventLoop::ListenAndCall()
             if(chanelnow)
             {
                 chanelnow->Set_revents(events[i].events);//设置就绪事件
-                chanelnow->CallRevents();//并调用相应回调函数
+                chanelnow->CallRevents();//并调用相应回调函数（一个）
+                //为啥只调用一个，因为epollwait是在while循环中，一个chanel可以反复调用。
             }
             else
             {

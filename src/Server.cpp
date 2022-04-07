@@ -63,7 +63,9 @@ void SERVER::Server_Start()
 
 void SERVER::Server_Stop()
 {
-    close(listen_fd);
+    //close(listen_fd);
+                // 04/07 bug现象：每次关闭时epoll会删除fd7失败。
+                //如何调试：通过log发现是在mainReactor中的epoll，后发现stop是在delete之前的，如果关闭了，则会导致删除fd失败（Bad file descriptor）
     server_main_Reactor->StopLoop();
     for(auto it:SubReactors)
     {
