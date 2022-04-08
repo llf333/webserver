@@ -122,13 +122,10 @@ int ReadData(int fd,std::string &read_buffer,bool& is_disconn)
 
         char buffer[GlobalValue::BufferMaxSize];
         memset(buffer,'\0',sizeof buffer);//最后一个字符是‘\0’
-        int ret= recv(fd,buffer,(sizeof buffer)+1,0);
+        int ret= recv(fd,buffer,sizeof buffer,0);
         if(ret<0)
         {
-            if(errno == EWOULDBLOCK || errno == EAGAIN)
-            {
-                return read_sum;
-            }
+            if(errno == EWOULDBLOCK || errno == EAGAIN) return read_sum;
 
             else if(errno == EINTR) continue;
 
@@ -177,6 +174,16 @@ int WriteData(int fd,std::string& buffer,bool& full)
             {
                 Getlogger()->error("failed to write data to socket{}  ___  {}", fd,strerror(errno));
                 return -1;
+                //--------------4/8严重bug（4天），现象：无法正常断开连接
+                //客户端断开链接，服务端这边会触发EPOLLIN，EPOLLOUT，EPOLLRDHUP事件，
+                // 有些人可能会在服务端关心EPOLLRDHUP事件，触发后关闭套接字，但是这个处理逻辑不是通用的，有些系统未必会触发EPOLLRDHUP。
+                // 最常用的做法是关心EPOLLIN事件，
+                // 然后在read的时候进行处理：
+                // 1. read返回0，对方正常调用close关闭链接
+                // 2.read返回-1，需要通过errno来判断，如果不是EAGAIN和EINTR，那么就是对方异常断开链接两种情况服务端都要close套接字
+                //
+                //
+                //之前的写法，是读错误了仍然返回已读数据量(return writes_sum)，但是这样就无法在外面调用断开连接，最后将这里改为return -1;
             }
         }
         //bug--别写在上面大括号里面去了

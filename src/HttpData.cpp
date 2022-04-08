@@ -357,7 +357,7 @@ void HttpData::call_back_in()
     {
         /*read_num < 0读取数据错误 可能是socket连接出了问题，这个时候最好由服务端主动断开连接*/
 
-        Getlogger()->error("failed to read the data from the fd{} (http fd)",fd);
+       // Getlogger()->error("failed to read the data from the fd{} (http fd)",fd);
 
         call_back_rdhub();
         return ;
