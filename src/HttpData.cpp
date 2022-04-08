@@ -8,10 +8,15 @@ HttpData::HttpData(Chanel* CH,EventLoop* EV):http_cha(CH),belong_sub(EV)
     main_state=main_State_ParseHTTP::check_state_requestline;
 
     //llf 设置channel的回调函数为Http的对应回调函数
-    http_cha->Register_RdHandle([=](){call_back_in();});
-    http_cha->Register_WrHandle([=](){call_back_out();});
-    http_cha->Register_ErHandle([=](){call_back_error();});
-    http_cha->Register_DiscHandle([=](){call_back_rdhub();});
+
+    if(CH){
+        http_cha->Register_RdHandle([=](){call_back_in();});
+        http_cha->Register_WrHandle([=](){call_back_out();});
+        http_cha->Register_ErHandle([=](){call_back_error();});
+        http_cha->Register_DiscHandle([=](){call_back_rdhub();});
+    }
+
+
 }
 
 HttpData::~HttpData()
@@ -31,10 +36,8 @@ void HttpData::state_machine()
                 sub_state=parse_requestline();
                 switch (sub_state) {
                     case requestline_data_is_not_complete:          //未接收到完整的请求行，返回，等待下一波数据的到来
-                    {
-                        std::cout<<"data is not complete"<<std::endl;
+                        std::cout<<"data is not complete1"<<std::endl;
                         return ;//直接return表示不发送数据
-                    }
 
                     case requestline_parse_error:                   //请求行语法错误，向客户端发送错误代码400并重置
                         Set_HttpErrorMessage(http_cha->Get_fd(),400,"Bad Request: Request line has syntax error");
@@ -52,6 +55,7 @@ void HttpData::state_machine()
                 sub_state=parse_header();
                 switch (sub_state) {
                     case header_data_is_not_complete:               //首部行数据不完整，返回，等待下一波数据到来
+                        std::cout<<"data is not complete2"<<std::endl;
                         return;
                     case header_parse_error:                        //首部行语法错误，向客户端发送错误代码400并重置
                         Set_HttpErrorMessage(http_cha->Get_fd(),400,"Bad Request: Header line has syntax error");
@@ -74,7 +78,7 @@ void HttpData::state_machine()
             case check_body://post报文会在请求头部中多Content-Type和Content-Length两个字段。
             {
                 //前后两个报文时间不能超过xxx，因此该mod timer
-                belong_sub->get_theTimeWheel()->TimerWheel_Adjust_Timer(http_timer,GlobalValue::HttpPostBodyTime);
+                belong_sub->get_theTimeWheel().TimerWheel_Adjust_Timer(http_timer,GlobalValue::HttpPostBodyTime);
                 if(mp.count("Content-length")||mp.count("content-length"))//如果找到了content-length字段
                 {
                     //找到了之后判断数据包的大小，因为在解析header时留下了一个/r/n，因此数据包的实际大小应该比数值大2
@@ -84,7 +88,10 @@ void HttpData::state_machine()
                     if(mp.count("content-length"))  length=mp["content-length"];
                     int content_length=std::stoi(length);
 
-                    if(read_buffer.size() < content_length+2) return ;//数据还没接收完整
+                    if(read_buffer.size() < content_length+2) {
+                        std::cout<<"data is not complete3"<<std::endl;
+                        return ;//数据还没接收完整
+                    }
                     else main_state=check_state_analyse_content;//接收完整则切换到分析状态
                 }
                 else//没找到表示出错了
@@ -104,13 +111,16 @@ void HttpData::state_machine()
                         sub_state=HttpData::Analyse_Post();
                     else if(mp["method"]=="get" || mp["method"]=="GET" || mp["method"]=="head" || mp["method"]=="HEAD")
                         sub_state=HttpData::Analyse_GetOrHead();
-                    else return ;                                           //其他方法暂时不做处理
+                    else {
+                        std::cout<<"data is not complete4"<<std::endl;
+                        return ;                                           //其他方法暂时不做处理
+                    }
 
                    // std::cout<<"WRITE_BUFFER:"<<std::endl<<write_buffer<<std::endl;
 
                     if(sub_state == analyse_error)
                     {
-                        //Set_HttpErrorMessage(http_cha->Get_fd(),500,"Internal Server Error: analyse data not success");
+                        Set_HttpErrorMessage(http_cha->Get_fd(),500,"Internal Server Error: analyse data not success");
                         error=true;
                         break;
                     }
@@ -125,12 +135,13 @@ void HttpData::state_machine()
                 else
                 {
                     Getlogger()->error("http data not found method");
+                    std::cout<<"data is not complete5"<<std::endl;
                     return ;
                 }
             }break;
         }
     }
-
+    //std::cout<<"ready to call"<<std::endl;
     call_back_out();//发送http响应报文
 }
 
@@ -275,7 +286,12 @@ void HttpData::Reset_Http_events(bool in)//true 表示注册Epollin； false 表
     else evnt=EPOLLOUT | EPOLLRDHUP | EPOLLERR;
 
     http_cha->Set_events(evnt);
-    belong_sub->MODChanel(http_cha,evnt);
+    if(!belong_sub->MODChanel(http_cha,evnt))
+    {
+        Getlogger()->error("mod fd {} chanel failed",http_cha->Get_fd());
+        return ;
+    }
+
     return ;
 }
 
@@ -285,12 +301,13 @@ void HttpData::Reset()
     if(mp["Connection"]=="keep-alive" || mp["Connection"]=="Keep-Alive")
     {
         auto timeout=GlobalValue::keep_alive_time;
-        if(!Get_timer()) belong_sub->get_theTimeWheel()->TimeWheel_insert_Timer(timeout,this);
-        else belong_sub->get_theTimeWheel()->TimerWheel_Adjust_Timer(Get_timer(),timeout);
+        if(!Get_timer()) belong_sub->get_theTimeWheel().TimeWheel_insert_Timer(timeout);
+        else belong_sub->get_theTimeWheel().TimerWheel_Adjust_Timer(Get_timer(),timeout);
     }
     else
     {
         //std::cout<<1<<std::endl;
+        //Getlogger()->error("fd {} Reset",http_cha->Get_fd());
         call_back_rdhub();
         return ;
     }
@@ -334,19 +351,20 @@ void HttpData::call_back_in()
     //读数据到buffer中，然后利用状态机解析
     int fd=http_cha->Get_fd();
 
-    if(ReadData(fd,read_buffer,dis_conn)<0 || dis_conn)
+    bool dis_conn=false;
+    int res=ReadData(fd,read_buffer,dis_conn);
+    if(res<0 || dis_conn)
     {
-        /*read_num < 0读取数据错误可能是socket连接出了问题，这个时候最好由服务端主动断开连接*/
+        /*read_num < 0读取数据错误 可能是socket连接出了问题，这个时候最好由服务端主动断开连接*/
 
         Getlogger()->error("failed to read the data from the fd{} (http fd)",fd);
-
-        if(dis_conn) Getlogger()->error("the http socket is closed");
 
         call_back_rdhub();
         return ;
     }
 
     state_machine();
+
 
 }
 
@@ -363,17 +381,19 @@ void HttpData::call_back_out()
         if(ret==-1)
         {
             //写数据出错，断开连接
-            //std::cout<<"333"<<std::endl;
+            std::cout<<"333"<<std::endl;
             call_back_rdhub();
             return;
         }
 
         if( full && write_sum < data_sum)//如果发送缓冲区满了，但是数据还没发送完，则重新注册Epollout事件，等待下次读入。
         {
+            std::cout<<"send buffer full"<<std::endl;
+
             //注册
             Reset_Http_events(false);
             //删除定时器，防止超时
-            belong_sub->get_theTimeWheel()->TimerWheel_Remove_Timer(http_timer);
+            belong_sub->get_theTimeWheel().TimerWheel_Remove_Timer(http_timer);
             //设置自己的定时器为空
             http_timer= nullptr;
             //返回
@@ -381,28 +401,34 @@ void HttpData::call_back_out()
         }
         write_sum+=ret;
     }
-    //发送完数据要重新注册Epollin，
+
+
+    //发送完数据要重新注册Epollin
     Reset_Http_events(true);
 
     //重置
     Reset();
+
 }
 
 void HttpData::call_back_error()
 {
+    std::cout<<"call_back_error()"<<std::endl;
     call_back_rdhub();
 }
 
 void HttpData::call_back_rdhub()
 {
     //删除连接事件，事件器也删除
+
     int fd=http_cha->Get_fd();
-
     if(belong_sub->DELChanel(http_cha))
+    {
         GlobalValue::Dec_Current_user_number();
+        //belong_sub->get_theTimeWheel()->TimerWheel_Remove_Timer(http_timer);
+        Getlogger()->info("Client {} disconnect, current user number: {}", fd, GlobalValue::GetUserNUmber());
+    }
 
-    //belong_sub->get_theTimeWheel()->TimerWheel_Remove_Timer(http_timer);
-    Getlogger()->info("Client {} disconnect, current user number: {}", fd, GlobalValue::GetUserNUmber());
 }
 
 void HttpData::TimerTimeoutCallback()

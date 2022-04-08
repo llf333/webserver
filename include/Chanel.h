@@ -19,7 +19,6 @@ private:
     bool is_connect;
     __uint32_t events;//感兴趣的事件集
     __uint32_t revents;//已就绪的事件集
-    __uint32_t last_event;//记录上一次的防止重复修改
 
     HttpData* holder=nullptr;//----------什么时候删除的-----------要设置默认值
 
@@ -31,7 +30,7 @@ private:
 
 public:
    // Chanel(int _fd, bool is_conn_, std::chrono::seconds timeout=GlobalValue::client_header_timeout);
-    Chanel(int _fd, bool is_conn_);
+    explicit Chanel(int _fd, bool is_conn_);
     ~Chanel();
     void Register_RdHandle(CALLBACK func) {read_handle=std::move(func);}
     void Register_WrHandle(CALLBACK func) {write_hande=std::move(func);}
@@ -55,7 +54,6 @@ public:
 
     bool Get_isconn(){return is_connect;};
 
-    bool IsEqualToLast();
 
 private:
     void CallRdfunc();

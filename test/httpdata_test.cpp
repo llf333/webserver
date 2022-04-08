@@ -56,7 +56,7 @@ int main(int argc,char* argv[])//格式./test port 127.0.0.1
         return 0;
     }
 
-    sleep(5);
+   // sleep(5);
 
     //发送数据
     const char* buf=get.c_str();
@@ -68,8 +68,9 @@ int main(int argc,char* argv[])//格式./test port 127.0.0.1
         return 0;
     }
     cout<<rest<<endl;
-
     sleep(5);
+close(sockfd);
+
 
     char rec_buf[1024];
 

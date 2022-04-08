@@ -14,6 +14,8 @@ SERVER::SERVER(int pot, EventLoop* Main_R, Thread_Pool* T_P)
                  server_main_Reactor(Main_R),server_thread_pool(T_P),
                  listen_CH(new Chanel(listen_fd,false))//4/5监听socket不是连接socket
 {
+    std::cout<<"listen_fd is: "<<listen_fd<<std::endl;
+
     if(listen_fd == -1) exit(-1);
     setnonblocking(listen_fd);
 }
@@ -36,7 +38,7 @@ SERVER:: ~SERVER()
 void SERVER::Server_Start()
 {
     /*对监听socket监听可读以及异常事件*/
-    listen_CH->Set_events(EPOLLIN | EPOLLERR);
+    listen_CH->Set_events(EPOLLIN | EPOLLERR );
     listen_CH->Register_ErHandle([=]{ERRisComing();});
     listen_CH->Register_RdHandle([=] {CONNisComing();});
 
@@ -57,7 +59,7 @@ void SERVER::Server_Start()
 
         //??????llf 在线程池中添加任务（任务是跑子Reactor），等号表示值捕获，函数返回结果存在哪儿？————future中包装的是Void，所以不用获取
         server_thread_pool->Add_task([=]{sub->StartLoop();});//每个线程的任务是跑SubReatcor
-        timeWheel_PipeOfWrite.emplace_back(sub->get_theTimeWheel()->Get_1tick());//保存每个时间轮的tick管道写端，往里面写数据意味着tick一下
+        timeWheel_PipeOfWrite.emplace_back(sub->get_theTimeWheel().Get_1tick());//保存每个时间轮的tick管道写端，往里面写数据意味着tick一下
     }
 }
 
@@ -65,12 +67,14 @@ void SERVER::Server_Stop()
 {
     //close(listen_fd);
                 // 04/07 bug现象：每次关闭时epoll会删除fd7失败。
-                //如何调试：通过log发现是在mainReactor中的epoll，后发现stop是在delete之前的，如果关闭了，则会导致删除fd失败（Bad file descriptor）
-    server_main_Reactor->StopLoop();
+                //如何调试：通过log发现是在mainReactor中的epoll，后发现close是在stop之前的，如果关闭了，则会导致删除fd失败（Bad file descriptor）
+
     for(auto it:SubReactors)
     {
         it->StopLoop();
     }
+
+    server_main_Reactor->StopLoop();
 }
 
 void SERVER::ERRisComing()
@@ -88,7 +92,7 @@ void SERVER::CONNisComing()
         //参考https://www.bianchengquan.com/article/563552.html
         int connfd=accept(listen_fd,reinterpret_cast<struct sockaddr*>(&client_address),&client_addrlen);
 
-        if(connfd<0)
+        if(connfd<=0)//0为标准输出
         {
             if(errno!=EAGAIN && errno!=EWOULDBLOCK)
             {
@@ -141,22 +145,8 @@ void SERVER::CONNisComing()
         }
 
 
-
         //建立好新连接之后，把任务派发给子Reactor（派发形式是找连接数量最少的子Reactor）
-        //注意这里还没加入子Reactor的httpdata池中，也没设置holder————已经在addchanel中加入了
-
-        Chanel* newconn(new Chanel(connfd, true));
-
-        /*!
-            Http连接的sokcet需要监听可读、可写、断开连接以及错误事件。
-            但是需要注意的是，不要一开始就注册可写事件，因为只要fd只要不是阻塞的它就是可写的。
-            因此，需要在完整读取了客户端的数据之后再注册可写事件，否则会一直触发可写事件。
-            这里connfd_channel的生命周期交由SubReactor管理。
-         */
-        newconn->Set_events(EPOLLIN | EPOLLRDHUP | EPOLLERR);
-
-        //将连接socket分发给事件最少的SubReactor
-        int least_conn_num=SubReactors[0]->Get_Num_Conn(),idx=0;
+        int least_conn_num=INT32_MAX,idx=0;
         for(int i=0;i<SubReactors.size();++i)
         {
             if(SubReactors[i]->Get_Num_Conn()<least_conn_num)
@@ -165,6 +155,21 @@ void SERVER::CONNisComing()
                 idx=i;
             }
         }
+
+
+        //注意这里还没加入子Reactor的httpdata池中，也没设置holder————已经在addchanel中加入了
+        auto* newconn=new Chanel(connfd, true);
+        if(!newconn) continue;
+
+
+
+        /*!
+            Http连接的sokcet需要监听可读、可写、断开连接以及错误事件。
+            但是需要注意的是，不要一开始就注册可写事件，因为只要fd只要不是阻塞的它就是可写的。
+            因此，需要在完整读取了客户端的数据之后再注册可写事件，否则会一直触发可写事件。
+            这里newconn的生命周期交由SubReactor管理。
+         */
+        newconn->Set_events(EPOLLIN | EPOLLRDHUP | EPOLLERR);
 
         //必须先设置Holder再将该连接socket加入到事件池中
         HttpData* newholder=new HttpData(newconn,SubReactors[idx].get());//chanel的四个回调函数在这里面绑定

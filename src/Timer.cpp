@@ -2,6 +2,8 @@
 
 #include <unistd.h>
 #include "Timer.h"
+#include "Other.h"
+#include "Chanel.h"
 
 
 //****************定时器*********************//
@@ -48,12 +50,12 @@ TimeWheel::~TimeWheel()
             delete timer;
 
     //关闭管道
-    close(tick_d[0]);
-    close(tick_d[1]);
+//    close(tick_d[0]);//管道0由chanel删除
+    close(tick_d[1]);//
 }
 
 //新建时间器在该函数里，且和holder绑定
-Timer* TimeWheel::TimeWheel_insert_Timer(std::chrono::seconds timeout,HttpData* holder)
+Timer* TimeWheel::TimeWheel_insert_Timer(std::chrono::seconds timeout)
 {
     if(timeout<std::chrono::seconds(0)) return nullptr;
 
@@ -67,14 +69,6 @@ Timer* TimeWheel::TimeWheel_insert_Timer(std::chrono::seconds timeout,HttpData* 
     Timer *Temp=nullptr;
     Temp = new Timer(pos, cycle);
     slot[pos].push_back(Temp);//插入到对应的槽当中
-
-    //http事件挂靠定时器,并设置超时回调函数
-    if(holder)
-    {
-        //相互绑定
-        Temp->Register_CallbackFunc([=]{holder->TimerTimeoutCallback();});
-        holder->Set_timer(Temp);
-    }
 
     return Temp;
 }

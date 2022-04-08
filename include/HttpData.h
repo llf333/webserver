@@ -47,11 +47,10 @@ enum sub_state_ParseHTTP{
 class HttpData
 {
 private:
-    Chanel* http_cha;                                                                   //从属的事件
+    Chanel* http_cha=nullptr;                                                                   //从属的事件
     EventLoop* belong_sub;                                                              //从属的Reactor
-    Timer* http_timer;                                                                  //绑定的事件器
-
-    bool dis_conn=false;                                                                //是否处于连接状态
+    Timer* http_timer{};                                                                  //绑定的事件器
+                                                          //是否处于连接状态
 
     std::string write_buffer;                                                           //发送缓冲区
     std::string read_buffer;                                                            //接收缓冲区

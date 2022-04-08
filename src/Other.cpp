@@ -11,14 +11,14 @@
 
 std::chrono::seconds GlobalValue::client_header_timeout=std::chrono::seconds(60);
 
-int GlobalValue::TheMaxConnNumber=100000;
+
 int GlobalValue::CurrentUserNumber=0;
 std::mutex GlobalValue::usernumber_mtx{};
 std::chrono::seconds GlobalValue::HttpHEADTime=std::chrono::seconds(60);
 std::chrono::seconds GlobalValue::HttpPostBodyTime=std::chrono::seconds(60);
-std::chrono::seconds GlobalValue::keep_alive_time=std::chrono::seconds(150);
+std::chrono::seconds GlobalValue::keep_alive_time=std::chrono::seconds(60);
 int GlobalValue::BufferMaxSize=2048;
-int GlobalValue::TimeWheel_PerSlotTime=1;
+int GlobalValue::TimeWheel_PerSlotTime=10;
 
 char GlobalValue::Favicon[555] = {//复制别人的echo test，至于是什么还不清楚
         '\x89', 'P',    'N',    'G',    '\xD',  '\xA',  '\x1A', '\xA',  '\x0',
@@ -131,12 +131,18 @@ int ReadData(int fd,std::string &read_buffer,bool& is_disconn)
             }
 
             else if(errno == EINTR) continue;
+
             else
             {
                 Getlogger()->error("fd{} ReadData failed to read data",fd);
-                is_disconn=true;
-                break;
+                return -1;
             }
+        }
+        else if(ret==0)
+        {
+            Getlogger()->debug("clinet {} has close the connection", fd);
+            is_disconn = true;
+            break;
         }
         read_buffer += buffer;//bug----没写进read_buffer
         read_sum+=ret;
@@ -220,7 +226,7 @@ int Read_from_fd(int fd,const char* buffer,int length)//read和write最好配套
             if(errno == EINTR) continue;//忽略系统中断
             else if(errno == EAGAIN) return read_sum;//缓冲区满
             else{
-                Getlogger()->error("read data from filefd {} error: {}", fd, strerror(errno));
+                Getlogger()->error("no http read data from filefd {} error: {}", fd, strerror(errno));
                 return -1;                               //否则表示发生了错误，返回-1
             }
         }

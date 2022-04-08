@@ -27,9 +27,10 @@ private:
     int listen_fd;
     Chanel* listen_CH;
 
-    EventLoop* server_main_Reactor;
     std::vector<std::shared_ptr<EventLoop>> SubReactors;//这里使用智能指针在析构时自动管理子Reactor
     Thread_Pool* server_thread_pool;
+
+    EventLoop* server_main_Reactor;
 
     SERVER(int pot, EventLoop* mainreactor, Thread_Pool* T_P);//私有构造函数
 public:

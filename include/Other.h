@@ -20,7 +20,7 @@ class GlobalValue
 public:
     static std::chrono::seconds client_header_timeout;
 
-    static int TheMaxConnNumber;                            //最大连接数
+    static const int TheMaxConnNumber=100000;               //最大连接数
     static int CurrentUserNumber;                           //总连接数
     static int BufferMaxSize;                               //读数据时buffer的最大长度
 

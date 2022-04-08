@@ -5,12 +5,13 @@
 #include<functional>
 #include<list>
 #include<vector>
-#include "Other.h"
-#include "HttpData.h"
-#include "Chanel.h"
+#include <chrono>
+
 
 class Chanel;
 class HttpData;
+
+
 /*!
  * @brief 定时器
  * @FuncofTimeUp 超时回调函数
@@ -67,12 +68,14 @@ private:
     void tick();//tick的功能就是到时后，执行当前槽中的已经到时的定时器，并移动至下一个槽
 
 public:
-    TimeWheel(size_t maxsize);
+    TimeWheel(size_t maxsize=12);
     TimeWheel(const TimeWheel& wheel) =delete;
     TimeWheel& operator=(const TimeWheel& wheel) =delete;
     ~TimeWheel();
 
-    Timer* TimeWheel_insert_Timer(std::chrono::seconds timeout,HttpData* holder);
+    //Timer* TimeWheel_insert_Timer(std::chrono::seconds timeout,HttpData* holder);//应该是通用的事件器，这种定义不好
+
+    Timer* TimeWheel_insert_Timer(std::chrono::seconds timeout);
     bool TimerWheel_Remove_Timer(Timer* timer);
     bool TimerWheel_Adjust_Timer(Timer* timer,std::chrono::seconds timeout);
 
@@ -80,4 +83,5 @@ public:
     int Get_1tick(){return tick_d[1];};
 
 };
+
 #endif
