@@ -13,14 +13,14 @@ class HttpData;
 
 class Chanel{
     //Chanel在 void SERVER::CONNisComing() 中新建，每个时间轮监听tick也有一个，listen_chanel也有一个
-    //
+
 private:
     int fd;
     bool is_connect;
     __uint32_t events;//感兴趣的事件集
     __uint32_t revents;//已就绪的事件集
 
-    HttpData* holder=nullptr;//----------什么时候删除的-----------要设置默认值
+    HttpData* holder=nullptr;//什么时候删除的--在delete Chanel中删除-----------指针最好设置默认值
 
     using CALLBACK=std::function<void()>;
     CALLBACK read_handle;

@@ -22,6 +22,7 @@ int main(int argc,char* argv[])//格式./test port 127.0.0.1
     //下面写http报文
     string head{};
     string get{};
+    string post{};
 
     //head
     head += "HEAD /index.html HTTP/1.1\r\n";
@@ -30,8 +31,16 @@ int main(int argc,char* argv[])//格式./test port 127.0.0.1
 
     //get
     get += "GET /index.html HTTP/1.1\r\n";
-    get += "Connection: keep-alive\r\n";
+    get += "Connection: close\r\n";
     get += "\r\n";
+
+    //post
+    post += "POST / HTTP/1.1\r\n";
+    post += "Connection: keep-alive\r\n";
+    post += "Content-Length: 5\r\n";
+    post += "Content-Type: text/plain\r\n";
+    post += "\r\nabcdf";
+
 
     int sockfd= socket(PF_INET,SOCK_STREAM,0);
     if(sockfd<0)
@@ -59,7 +68,7 @@ int main(int argc,char* argv[])//格式./test port 127.0.0.1
    // sleep(5);
 
     //发送数据
-    const char* buf=get.c_str();
+    const char* buf=post.c_str();
     cout<<buf<<endl;
     int rest=send(sockfd,buf, strlen(buf),0);//bug————————————————之前用的sizeof，sizeof char* 为8个字节！！！！！！
     if(rest<0)
@@ -68,9 +77,9 @@ int main(int argc,char* argv[])//格式./test port 127.0.0.1
         return 0;
     }
     cout<<rest<<endl;
-    sleep(5);
-close(sockfd);
 
+  //  close(sockfd);
+    sleep(5);
 
     char rec_buf[1024];
 

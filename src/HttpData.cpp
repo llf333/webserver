@@ -2,7 +2,6 @@
 
 #include "HttpData.h"
 
-
 HttpData::HttpData(Chanel* CH,EventLoop* EVLP):http_cha(CH),belong_sub(EVLP)
 {
     main_state=main_State_ParseHTTP::check_state_requestline;
@@ -15,8 +14,6 @@ HttpData::HttpData(Chanel* CH,EventLoop* EVLP):http_cha(CH),belong_sub(EVLP)
         http_cha->Register_ErHandle([=](){call_back_error();});
         http_cha->Register_DiscHandle([=](){call_back_rdhub();});
     }
-
-
 }
 
 HttpData::~HttpData()
@@ -77,14 +74,14 @@ void HttpData::state_machine()
 
             case check_body://post报文会在请求头部中多Content-Type和Content-Length两个字段。
             {
-                //前后两个报文时间不能超过xxx，因此该mod timer
+                //保证前后两个报文时间不能超过某个时间，因此该mod timer
                 belong_sub->get_theTimeWheel().TimerWheel_Adjust_Timer(http_timer,GlobalValue::HttpPostBodyTime);
-                if(mp.count("Content-length")||mp.count("content-length"))//如果找到了content-length字段
+                if(mp.count("Content-Length")||mp.count("content-length"))//如果找到了content-length字段
                 {
                     //找到了之后判断数据包的大小，因为在解析header时留下了一个/r/n，因此数据包的实际大小应该比数值大2
                     //如果小于，则证明还没接收完整，返回，等待下一次接收
                     std::string length="0";
-                    if(mp.count("Content-length"))  length=mp["Content-length"];
+                    if(mp.count("Content-Length"))  length=mp["Content-Length"];
                     if(mp.count("content-length"))  length=mp["content-length"];
                     int content_length=std::stoi(length);
 
@@ -323,7 +320,7 @@ void HttpData::Set_HttpErrorMessage(int fd,int erro_num,std::string msg)
     Getlogger()->error("Http erro {} from {},the msg is {}:",erro_num,fd,msg);
     //设置发送缓冲区的数据，不发送，由Http_send函数发送
 
-    //编写body*************暂时还不知道为啥是这个格式
+    //编写body*************暂时还不知道为啥是这个格式-----4/7html语言
     std::string  response_body{};
     response_body += "<html><title>错误</title>";
     response_body += "<body bgcolor=\"ffffff\">";
@@ -415,12 +412,12 @@ void HttpData::call_back_error()
 void HttpData::call_back_rdhub()
 {
     //删除连接事件，事件器也删除
-
     int fd=http_cha->Get_fd();
     if(belong_sub->DELChanel(http_cha))
     {
         GlobalValue::Dec_Current_user_number();
         //belong_sub->get_theTimeWheel()->TimerWheel_Remove_Timer(http_timer);
+        //std::cout<<GlobalValue::GetUserNUmber()<<std::endl;
         Getlogger()->info("Client {} disconnect, current user number: {}", fd, GlobalValue::GetUserNUmber());
     }
 }

@@ -10,17 +10,15 @@
 ///////////////
 
 
-
-
 int GlobalValue::CurrentUserNumber=0;
 std::mutex GlobalValue::usernumber_mtx{};
-std::chrono::seconds GlobalValue::HttpHEADTime=std::chrono::seconds(20);
+std::chrono::seconds GlobalValue::HttpHEADTime=std::chrono::seconds(888);
 std::chrono::seconds GlobalValue::HttpPostBodyTime=std::chrono::seconds(60);
 std::chrono::seconds GlobalValue::keep_alive_time=std::chrono::seconds(60);
 int GlobalValue::BufferMaxSize=2048;
 int GlobalValue::TimeWheel_PerSlotTime=1;
 
-char GlobalValue::Favicon[555] = {//复制别人的echo test，至于是什么还不清楚
+char GlobalValue::Favicon[555] = {//模仿别人压力测试的echo test，作为速度比较。至于是什么还不清楚
         '\x89', 'P',    'N',    'G',    '\xD',  '\xA',  '\x1A', '\xA',  '\x0',
         '\x0',  '\x0',  '\xD',  'I',    'H',    'D',    'R',    '\x0',  '\x0',
         '\x0',  '\x10', '\x0',  '\x0',  '\x0',  '\x10', '\x8',  '\x6',  '\x0',

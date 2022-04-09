@@ -62,15 +62,13 @@ private:
 public:
     HttpData(Chanel* CH,EventLoop* EVLP);
     ~HttpData();
-    void state_machine();                                                               //状态机
 
-    Timer* Get_timer(){return http_timer;}
     void Set_timer(Timer* timer_) {http_timer=timer_;}                                  //设置定时器
-
-
+    Timer* Get_timer(){return http_timer;}
     void TimerTimeoutCallback();                                                        //定时器超时回调函数
 
 private:
+    void state_machine();                                                               //状态机
     sub_state_ParseHTTP parse_requestline();                                            //解析请求行
     sub_state_ParseHTTP parse_header();                                                 //解析首部行
     void Set_HttpErrorMessage(int fd,int erro_num,std::string msg);                     //设置错误报文

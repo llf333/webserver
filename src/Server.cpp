@@ -26,12 +26,11 @@ SERVER:: ~SERVER()
     /*！
      * 资源管理的原则是需要留意带指针的对象
      * static SERVER* service              在主函数分配，由主函数管理
-     * Chanel* listen_CH                   Chanel通常由Reactor管理，有两种途径，分别是：Reactor中DELChanel函数删除，以及 Reactor析构时自动删除（采用了unique_ptr的数组）
-     *                                     此处交由mainReactor管理
+     * Chanel* listen_CH                   Chanel由Reactor管理，有两种途径，分别是：Reactor中DELChanel函数删除，以及 Reactor析构时（调用DeleteChanel）
+     *                                     此处的listen_CH交由mainReactor管理
      * Thread_Pool* server_thread_pool     在主函数分配，由主函数管理
      * SubReactors                         使用智能指针在析构时自动管理子Reactor
      */
-
 
 }
 
@@ -178,6 +177,8 @@ void SERVER::CONNisComing()
         SubReactors[idx]->AddChanel(newconn);
 
         GlobalValue::Inc_Current_user_number();
+
+        // std::cout<<GlobalValue::GetUserNUmber()<<std::endl;
 
         Getlogger()->info("SubReactor {} add a connect :{}, CurrentUserNumber: {}",idx,connfd,GlobalValue::GetUserNUmber());
 

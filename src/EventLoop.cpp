@@ -14,7 +14,7 @@ EventLoop::EventLoop(bool ismain): is_mainReactor(ismain),epollfd(epoll_create1(
      */
 
     //* llf
-    // EPOLL_CLOEXEC  在文件描述符上面设置执行时关闭（FD_CLOEXEC）标志描述符。
+    // EPOLL_CLOEXEC  在文件描述符上面设置 执行时关闭（FD_CLOEXEC）标志描述符。
 
     //llf 时间轮的事件可读时表示时间轮走一格，即tick_fd[0]可读
     //下面添加的事件的fd就是tick_fd[0]，其可读回调函数是tick一下时间轮
@@ -25,13 +25,12 @@ EventLoop::EventLoop(bool ismain): is_mainReactor(ismain),epollfd(epoll_create1(
         Getlogger()->error("create reactor erro : {}", strerror(errno));
         exit(-1);
     }
-
 }
 
 EventLoop::~EventLoop()
 {
     stop=true;
-   /// delete wheelOFloop;//时间轮由自己管理
+   /// delete wheelOFloop;//时间轮由自己管理——————4/9没必要用指针，并不在其他地方使用时间轮，自己使用自己的时轮即可。
     close(epollfd);
 }
 
@@ -58,8 +57,7 @@ bool EventLoop::AddChanel(Chanel* CHNL)
     }
 
     //成功后，将该chanel添加到池里面
-    chanelpool[fd]=CHNL;//又新建一个指针————注意资源管理——————————4/5好像是错的，这句话的意思是将指针用智能指针管理
-                        //4/8改回普通指针，明确资源管理
+    chanelpool[fd]=CHNL;//4/8改回普通指针，明确资源管理
 
 
     //如果还是连接socket,则将http数据存入池中
@@ -76,10 +74,10 @@ bool EventLoop::AddChanel(Chanel* CHNL)
         }
         //把httpdata和timer关联起来
         CHNL->Get_holder()->Set_timer(res);
-        //注册事件器的回调函数
+        //注册时间器的回调函数
         res->Register_CallbackFunc([=]{CHNL->Get_holder()->TimerTimeoutCallback();});
 
-        //更改连接数量
+        //更改连接数量（自己的数量）
         {
             std::unique_lock<std::mutex> locker(NUMmtx);
             NUM_Conn++;
@@ -153,6 +151,8 @@ bool EventLoop::DELChanel(Chanel* CHNL)//定时器也在这里面删除
                                     //怀疑是内存泄漏，于是从头到尾地明确了一下各个对象是什么时候被delete的，原版httpdata是用unique_ptr管理的，
                                     // 但是我觉得在eventloop中存储httpdata的没有必要，因此此处需要手动删除。
 
+                                    //4/8  还是使用了http池
+
         //更改连接数量
         {
             std::unique_lock<std::mutex> locker(NUMmtx);
@@ -180,7 +180,7 @@ void EventLoop::StartLoop()
 
 void EventLoop::ListenAndCall()
 {
-    while(!stop)
+    while(!stop)//调试时，里面总有有一个事件会触发，那个事件是时间轮tick管道的可读事件
     {
 
         int number= epoll_wait(epollfd,events,PerEpollMaxEvent,Epoll_timeout);
@@ -206,7 +206,6 @@ void EventLoop::ListenAndCall()
             {
                 chanelnow->Set_revents(events[i].events);//设置就绪事件
                 chanelnow->CallRevents();//并调用相应回调函数（一个）
-                //为啥只调用一个，因为epollwait是在while循环中，一个chanel可以反复调用。
             }
             else
             {

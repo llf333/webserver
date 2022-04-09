@@ -46,8 +46,9 @@ auto Thread_Pool::Add_task(F&& f,Args&&... args) -> std::future<typename std::re
 {
     typedef typename std::result_of<F(Args...)>::type ReturnType;//注意加typename ，嵌套从属类型
 
+    //bind的主要目的就是把很多类型不同的函数都包装成 void name () 类型 ，作为参数构造std::packaged_task。
     auto tsk=std::make_shared<std::packaged_task<ReturnType()>>
-            (std::bind(std::forward<F>(f),std::forward<Args>(args)...));//tsk是个函数指针
+            (std::bind(std::forward<F>(f),std::forward<Args>(args)...));//tsk是个函数指针。   ---为什么要用forward？
 
     std::future<ReturnType> res=tsk->get_future();
 
@@ -60,7 +61,7 @@ auto Thread_Pool::Add_task(F&& f,Args&&... args) -> std::future<typename std::re
             (*tsk)();
         });//这句话的理解是传一个std::function<void()>，这个function里面执行tsk.
 
-       //bug——task_que.emplace((*tsk));//不能直接解引用，packaged打包的函数和std::function<void()>类型不一致
+       //bug——task_que.emplace((*tsk));//不能直接解引用，解引用了只是一个packaged_task对象，任务队列的类型是std::function<void()>，两者类型不一致
 
     }
 

@@ -1,4 +1,6 @@
 // Created by llf on 2022/3/8.
+//From: https://github.com/progschj/ThreadPool
+//解析：https://www.cnblogs.com/chenleideblog/p/12915534.html
 
 #include"ThreadPool.h"
 
@@ -21,7 +23,7 @@ Thread_Pool::Thread_Pool(size_t size) :stop_(false),sizeofpoll(size)
                 while(this->task_que.empty())//当任务队列为空，则一直阻塞,注意使用while，防止虚假唤醒
                     cv.wait(lock);
 
-                //析构函数唤醒后退出
+                //这句主要用于析构函数唤醒后退出
                 if(this->stop_&&this->task_que.empty()) return ;//如果线程池停止，且任务队列为空，则终止线程
 
                 tsk=std::move(this->task_que.front());//move更快

@@ -17,7 +17,7 @@ class EventLoop
 private:
     bool is_mainReactor=false;
 
-    int NUM_Conn;                                                                   //Reactor管理的http连接的数量
+    int NUM_Conn;                                                                   //Reactor管理的http连接的数量，主要用于分发任务时的判断
     std::mutex NUMmtx;                                                              //避免访问 "连接数量" 造成竞争
 
     static const int PerEpollMaxEvent=4096;
@@ -31,7 +31,7 @@ private:
 
     HttpData* httppool[GlobalValue::TheMaxConnNumber];
    //感觉可以删除，好像没必要存这个映射，可以用Chanel->GetHolder-----22/04/05原版本的目的是用于资源管理
-   //4/9 还是加上了，方便统一delete
+   //4/8 还是加上了，方便统一delete，因为在程序断开时，可能仍有连接，仍有指针没析构，此时在析构时，可通过这两个池的数据统一析构。
 
 
     TimeWheel wheelOFloop{};                                                         //为了避免竞争，让每个事件池都拥有一个独立的时间轮

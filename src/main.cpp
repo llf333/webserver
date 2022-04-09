@@ -1,7 +1,6 @@
 #include<iostream>
 
 #include"ThreadPool.h"
-#include"Chanel.h"
 #include"EventLoop.h"
 #include"Other.h"
 #include"Server.h"
