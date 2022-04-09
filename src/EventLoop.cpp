@@ -59,14 +59,14 @@ bool EventLoop::AddChanel(Chanel* CHNL)
 
     //成功后，将该chanel添加到池里面
     chanelpool[fd]=CHNL;//又新建一个指针————注意资源管理——————————4/5好像是错的，这句话的意思是将指针用智能指针管理
+                        //4/8改回普通指针，明确资源管理
+
 
     //如果还是连接socket,则将http数据存入池中
     // 并挂靠定时器
-
     if(CHNL->Get_holder())
     {
         httppool[fd]=CHNL->Get_holder();
-
 
         Timer* res=wheelOFloop.TimeWheel_insert_Timer(GlobalValue::HttpHEADTime);
         if(!res)
@@ -85,7 +85,6 @@ bool EventLoop::AddChanel(Chanel* CHNL)
             NUM_Conn++;
         }
     }
-    else Getlogger()->error("fd {} is connfd ,but it not has a holder",CHNL->Get_fd());
 
     return true;
 }
@@ -115,7 +114,10 @@ bool EventLoop::MODChanel(Chanel* CHNL,__uint32_t EV)
 
 bool EventLoop::DELChanel(Chanel* CHNL)//定时器也在这里面删除
 {
-    if(!CHNL) return false;
+    if(!CHNL) {
+        Getlogger()->info("CHNL is null");
+        return false;
+    }
 
     int fd=CHNL->Get_fd();
     epoll_event ev{};
@@ -140,8 +142,7 @@ bool EventLoop::DELChanel(Chanel* CHNL)//定时器也在这里面删除
     if(CHNL->Get_holder())
     {
         //删除http池中的数据和定时器
-        if(CHNL->Get_holder()->Get_timer())
-        get_theTimeWheel().TimerWheel_Remove_Timer(CHNL->Get_holder()->Get_timer());//定时器在这里面detele掉
+        get_theTimeWheel().TimerWheel_Remove_Timer(CHNL->Get_holder()->Get_timer());
 
         delete httppool[fd];
         httppool[fd]= nullptr;
@@ -159,7 +160,6 @@ bool EventLoop::DELChanel(Chanel* CHNL)//定时器也在这里面删除
         }
 
     }
-
     delete chanelpool[fd];
     chanelpool[fd]= nullptr;
     //chanelpool[fd].reset(nullptr);//删除原始指针，将unique_ptr关联至nullptr

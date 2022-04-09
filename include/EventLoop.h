@@ -31,6 +31,7 @@ private:
 
     HttpData* httppool[GlobalValue::TheMaxConnNumber];
    //感觉可以删除，好像没必要存这个映射，可以用Chanel->GetHolder-----22/04/05原版本的目的是用于资源管理
+   //4/9 还是加上了，方便统一delete
 
 
     TimeWheel wheelOFloop{};                                                         //为了避免竞争，让每个事件池都拥有一个独立的时间轮

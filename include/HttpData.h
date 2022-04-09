@@ -47,10 +47,9 @@ enum sub_state_ParseHTTP{
 class HttpData
 {
 private:
-    Chanel* http_cha=nullptr;                                                                   //从属的事件
+    Chanel* http_cha=nullptr;                                                           //从属的事件
     EventLoop* belong_sub;                                                              //从属的Reactor
-    Timer* http_timer{};                                                                  //绑定的事件器
-                                                          //是否处于连接状态
+    Timer* http_timer{};                                                                //绑定的事件器
 
     std::string write_buffer;                                                           //发送缓冲区
     std::string read_buffer;                                                            //接收缓冲区
@@ -61,7 +60,7 @@ private:
     std::map<std::string,std::string> mp;                                               //存http请求报文信息，第一个参数为类型，第二个参数为具体内容。例如：mp["url"]="www.baidu.com";
 
 public:
-    HttpData(Chanel* CH,EventLoop* EV);
+    HttpData(Chanel* CH,EventLoop* EVLP);
     ~HttpData();
     void state_machine();                                                               //状态机
 

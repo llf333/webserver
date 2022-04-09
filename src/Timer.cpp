@@ -138,8 +138,13 @@ void TimeWheel::tick()
         //否则说明到触发时间了
         else
         {
+//            原版：会导致内存泄漏，erase会delete，事件器的delete只在TimerWheel_Remove_Timer负责
+//            p->ExecuteCallbackFunc();
+//            slot[CurrentPos].erase(it);
+
+            auto next=++it;
             p->ExecuteCallbackFunc();
-            slot[CurrentPos].erase(it);
+            it=next;
         }
     }
 

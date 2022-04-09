@@ -3,7 +3,7 @@
 #include "HttpData.h"
 
 
-HttpData::HttpData(Chanel* CH,EventLoop* EV):http_cha(CH),belong_sub(EV)
+HttpData::HttpData(Chanel* CH,EventLoop* EVLP):http_cha(CH),belong_sub(EVLP)
 {
     main_state=main_State_ParseHTTP::check_state_requestline;
 
@@ -36,7 +36,7 @@ void HttpData::state_machine()
                 sub_state=parse_requestline();
                 switch (sub_state) {
                     case requestline_data_is_not_complete:          //未接收到完整的请求行，返回，等待下一波数据的到来
-                        std::cout<<"data is not complete1"<<std::endl;
+                       // std::cout<<"data is not complete1"<<std::endl;
                         return ;//直接return表示不发送数据
 
                     case requestline_parse_error:                   //请求行语法错误，向客户端发送错误代码400并重置
@@ -55,7 +55,7 @@ void HttpData::state_machine()
                 sub_state=parse_header();
                 switch (sub_state) {
                     case header_data_is_not_complete:               //首部行数据不完整，返回，等待下一波数据到来
-                        std::cout<<"data is not complete2"<<std::endl;
+                      //  std::cout<<"data is not complete2"<<std::endl;
                         return;
                     case header_parse_error:                        //首部行语法错误，向客户端发送错误代码400并重置
                         Set_HttpErrorMessage(http_cha->Get_fd(),400,"Bad Request: Header line has syntax error");
@@ -89,7 +89,7 @@ void HttpData::state_machine()
                     int content_length=std::stoi(length);
 
                     if(read_buffer.size() < content_length+2) {
-                        std::cout<<"data is not complete3"<<std::endl;
+                    //    std::cout<<"data is not complete3"<<std::endl;
                         return ;//数据还没接收完整
                     }
                     else main_state=check_state_analyse_content;//接收完整则切换到分析状态
@@ -112,7 +112,7 @@ void HttpData::state_machine()
                     else if(mp["method"]=="get" || mp["method"]=="GET" || mp["method"]=="head" || mp["method"]=="HEAD")
                         sub_state=HttpData::Analyse_GetOrHead();
                     else {
-                        std::cout<<"data is not complete4"<<std::endl;
+                    //    std::cout<<"data is not complete4"<<std::endl;
                         return ;                                           //其他方法暂时不做处理
                     }
 
@@ -120,7 +120,7 @@ void HttpData::state_machine()
 
                     if(sub_state == analyse_error)
                     {
-                        Set_HttpErrorMessage(http_cha->Get_fd(),500,"Internal Server Error: analyse data not success");
+                     //   Set_HttpErrorMessage(http_cha->Get_fd(),500,"Internal Server Error: analyse data not success");
                         error=true;
                         break;
                     }
@@ -135,7 +135,7 @@ void HttpData::state_machine()
                 else
                 {
                     Getlogger()->error("http data not found method");
-                    std::cout<<"data is not complete5"<<std::endl;
+                 //   std::cout<<"data is not complete5"<<std::endl;
                     return ;
                 }
             }break;
@@ -227,7 +227,7 @@ sub_state_ParseHTTP HttpData::parse_header()
         if(!deal_with_perline(newline)) return header_parse_error;//格式出错
     }
 }
-*///解析首部行时，每解析一行就删除一行，不好（因为数据可能不完整）
+*///解析首部行时，每解析一行就删除一行，错误！（因为数据可能不完整）
 
 sub_state_ParseHTTP HttpData::parse_header()
 {
@@ -285,7 +285,7 @@ void HttpData::Reset_Http_events(bool in)//true 表示注册Epollin； false 表
     if(in) evnt=EPOLLIN | EPOLLRDHUP | EPOLLERR;
     else evnt=EPOLLOUT | EPOLLRDHUP | EPOLLERR;
 
-    http_cha->Set_events(evnt);
+    http_cha->Set_events(evnt);//在mod里面没写，降低耦合吧
     if(!belong_sub->MODChanel(http_cha,evnt))
     {
         Getlogger()->error("mod fd {} chanel failed",http_cha->Get_fd());
@@ -304,7 +304,7 @@ void HttpData::Reset()
         if(!Get_timer()) belong_sub->get_theTimeWheel().TimeWheel_insert_Timer(timeout);
         else belong_sub->get_theTimeWheel().TimerWheel_Adjust_Timer(Get_timer(),timeout);
     }
-    else
+    else//短连接直接关闭
     {
         //std::cout<<1<<std::endl;
         //Getlogger()->error("fd {} Reset",http_cha->Get_fd());
@@ -316,7 +316,6 @@ void HttpData::Reset()
     write_buffer.clear();
     mp.clear();
     main_state=main_State_ParseHTTP::check_state_requestline;
-
 }
 
 void HttpData::Set_HttpErrorMessage(int fd,int erro_num,std::string msg)
@@ -355,17 +354,14 @@ void HttpData::call_back_in()
     int res=ReadData(fd,read_buffer,dis_conn);
     if(res<0 || dis_conn)
     {
-        /*read_num < 0读取数据错误 可能是socket连接出了问题，这个时候最好由服务端主动断开连接*/
-
        // Getlogger()->error("failed to read the data from the fd{} (http fd)",fd);
 
+        /*read_num < 0读取数据错误 可能是socket连接出了问题，这个时候最好由服务端主动断开连接*/
         call_back_rdhub();
         return ;
     }
 
     state_machine();
-
-
 }
 
 void HttpData::call_back_out()
@@ -381,7 +377,6 @@ void HttpData::call_back_out()
         if(ret==-1)
         {
             //写数据出错，断开连接
-            std::cout<<"333"<<std::endl;
             call_back_rdhub();
             return;
         }
@@ -413,7 +408,7 @@ void HttpData::call_back_out()
 
 void HttpData::call_back_error()
 {
-    std::cout<<"call_back_error()"<<std::endl;
+    std::cout<<"call_back_error()"<<std::endl;//这里没用log是因为error太少了，记录在log里面不好找
     call_back_rdhub();
 }
 
@@ -428,7 +423,6 @@ void HttpData::call_back_rdhub()
         //belong_sub->get_theTimeWheel()->TimerWheel_Remove_Timer(http_timer);
         Getlogger()->info("Client {} disconnect, current user number: {}", fd, GlobalValue::GetUserNUmber());
     }
-
 }
 
 void HttpData::TimerTimeoutCallback()

@@ -42,7 +42,7 @@ void SERVER::Server_Start()
     listen_CH->Register_ErHandle([=]{ERRisComing();});
     listen_CH->Register_RdHandle([=] {CONNisComing();});
 
-    server_main_Reactor->AddChanel(listen_CH);
+    server_main_Reactor->AddChanel(listen_CH);//里面默认设置成ET模式，因此上面不用加
 
     //给线程池中的任务队列添加任务，任务是跑子Reactor，每个线程对应一个子Reactor
     auto subreactor_size=server_thread_pool->sizeofpoll;
@@ -69,6 +69,7 @@ void SERVER::Server_Stop()
                 // 04/07 bug现象：每次关闭时epoll会删除fd7失败。
                 //如何调试：通过log发现是在mainReactor中的epoll，后发现close是在stop之前的，如果关闭了，则会导致删除fd失败（Bad file descriptor）
 
+                //文件描述符统一在Chanel析构时关闭
     for(auto it:SubReactors)
     {
         it->StopLoop();
@@ -111,8 +112,6 @@ void SERVER::CONNisComing()
         }
 
 
-        GlobalValue::Inc_Current_user_number();
-
         if(setnonblocking(connfd) < 0)
         {
             close(connfd);
@@ -138,8 +137,8 @@ void SERVER::CONNisComing()
 
         if(ret==-1)
         {
-            std::cout<<strerror(errno)<<std::endl;
-            ::Getlogger()->error("failed to set TCP_NODELAY on connfd", strerror(errno));
+           // std::cout<<strerror(errno)<<std::endl;
+            Getlogger()->error("failed to set TCP_NODELAY on connfd", strerror(errno));
             close(connfd);
             return ;
         }
@@ -156,12 +155,12 @@ void SERVER::CONNisComing()
             }
         }
 
-
         //注意这里还没加入子Reactor的httpdata池中，也没设置holder————已经在addchanel中加入了
         auto* newconn=new Chanel(connfd, true);
-        if(!newconn) continue;
-
-
+        if(!newconn) {
+            Getlogger()->error("new a Chanel fail");
+            continue;
+        }
 
         /*!
             Http连接的sokcet需要监听可读、可写、断开连接以及错误事件。
@@ -177,6 +176,8 @@ void SERVER::CONNisComing()
 
         //分发
         SubReactors[idx]->AddChanel(newconn);
+
+        GlobalValue::Inc_Current_user_number();
 
         Getlogger()->info("SubReactor {} add a connect :{}, CurrentUserNumber: {}",idx,connfd,GlobalValue::GetUserNUmber());
 

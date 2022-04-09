@@ -9,16 +9,16 @@
 //Global Value//
 ///////////////
 
-std::chrono::seconds GlobalValue::client_header_timeout=std::chrono::seconds(60);
+
 
 
 int GlobalValue::CurrentUserNumber=0;
 std::mutex GlobalValue::usernumber_mtx{};
-std::chrono::seconds GlobalValue::HttpHEADTime=std::chrono::seconds(60);
+std::chrono::seconds GlobalValue::HttpHEADTime=std::chrono::seconds(20);
 std::chrono::seconds GlobalValue::HttpPostBodyTime=std::chrono::seconds(60);
 std::chrono::seconds GlobalValue::keep_alive_time=std::chrono::seconds(60);
 int GlobalValue::BufferMaxSize=2048;
-int GlobalValue::TimeWheel_PerSlotTime=10;
+int GlobalValue::TimeWheel_PerSlotTime=1;
 
 char GlobalValue::Favicon[555] = {//复制别人的echo test，至于是什么还不清楚
         '\x89', 'P',    'N',    'G',    '\xD',  '\xA',  '\x1A', '\xA',  '\x0',
@@ -133,6 +133,16 @@ int ReadData(int fd,std::string &read_buffer,bool& is_disconn)
             {
                 Getlogger()->error("fd{} ReadData failed to read data",fd);
                 return -1;
+                //--------------4/8严重bug（4天），现象：无法正常断开连接
+                //客户端断开链接，服务端这边会触发EPOLLIN，EPOLLOUT，EPOLLRDHUP事件，
+                // 有些人可能会在服务端关心EPOLLRDHUP事件，触发后关闭套接字，但是这个处理逻辑不是通用的，有些系统（老的linux系统）未必会触发EPOLLRDHUP。
+                // 最常用的做法是关心EPOLLIN事件，
+                // 然后在read的时候进行处理：
+                // 1. read返回0，对方正常调用close关闭链接
+                // 2.read返回-1，需要通过errno来判断，如果不是EAGAIN和EINTR，那么就是对方异常断开链接两种情况服务端都要close套接字
+                //
+                //
+                //之前的写法，是读错误了仍然返回已读数据量(return writes_sum)，但是这样就无法在外面调用断开连接，最后将这里改为return -1;
             }
         }
         else if(ret==0)
@@ -173,17 +183,7 @@ int WriteData(int fd,std::string& buffer,bool& full)
             else
             {
                 Getlogger()->error("failed to write data to socket{}  ___  {}", fd,strerror(errno));
-                return -1;
-                //--------------4/8严重bug（4天），现象：无法正常断开连接
-                //客户端断开链接，服务端这边会触发EPOLLIN，EPOLLOUT，EPOLLRDHUP事件，
-                // 有些人可能会在服务端关心EPOLLRDHUP事件，触发后关闭套接字，但是这个处理逻辑不是通用的，有些系统未必会触发EPOLLRDHUP。
-                // 最常用的做法是关心EPOLLIN事件，
-                // 然后在read的时候进行处理：
-                // 1. read返回0，对方正常调用close关闭链接
-                // 2.read返回-1，需要通过errno来判断，如果不是EAGAIN和EINTR，那么就是对方异常断开链接两种情况服务端都要close套接字
-                //
-                //
-                //之前的写法，是读错误了仍然返回已读数据量(return writes_sum)，但是这样就无法在外面调用断开连接，最后将这里改为return -1;
+                return -1;//否则表示发生了错误，返回-1，和Read同理
             }
         }
         //bug--别写在上面大括号里面去了
@@ -212,7 +212,7 @@ int Write_to_fd(int fd,const char* content,int length)
             else if(errno == EAGAIN) return write_num;//缓冲区满
             else{
                 Getlogger()->error("write data to filefd {} error: {}", fd, strerror(errno));
-                return -1;                               //否则表示发生了错误，返回-1
+                return -1;
             }
         }
         write_num+=write_once;
@@ -309,7 +309,7 @@ int BindAndListen(int pot)
     /*设置地址重用，实现端口复用，一般服务器都需要设置*/
     //llf socket关闭之后，操作系统不会立即收回对端口的控制权，而是要经历一个等待阶段。此时对这个端口绑定就会出错。想要立即进行绑定，就必须先设置SO_REUSEADDR.
     //  或者在关闭socket的时候，使用setsockopt设置SO_REUSEADDR。才会消除等待时间。
-    int reuse= 1;
+    int reuse= 1; //必须用int，和set no_delay一样
     int res= setsockopt(listenfd,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof reuse);
     if(res == -1)
     {
@@ -346,7 +346,7 @@ int BindAndListen(int pot)
       服务器的最大并发连接数量没有直接的关系，只会影响服务器允许同时发起连
       接的客户端的数量。
      */
-    ret=listen(listenfd,2048);//listen的第二个参数是什么含义
+    ret=listen(listenfd,4096);//listen的第二个参数是什么含义
     if(ret==-1)
     {
         Getlogger()->error("faied to listen listenfd ", strerror(errno));

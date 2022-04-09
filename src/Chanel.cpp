@@ -13,16 +13,20 @@ Chanel::~Chanel()
 
 void Chanel::CallRevents()
 {
+    //4/9
+    //疑问：ET模式不是只通知一次吗，这里一次只处理一个事件是否合理？
+    //答：ET模式是只通知一次某个事件，而不是所有事件。
+
     if(revents & EPOLLERR)
         CallErfunc();
 
-    else if(revents & EPOLLOUT)  //4/7日，这个不能放在rdhub后面，放在后面会出现想要写数据但是写不了的情况。（log中读fd失败，删除fd失败等错误）
-        CallWrfunc();
-
-    else if(revents & EPOLLRDHUP) //4/7日，在修复长连接出错时调换了顺序，原顺序是 err-in-out-rdhub
+    else if(revents & EPOLLRDHUP) //4/7日，在修复长连接出错时调换了顺序，原顺序是 err-in-out-rdhub,会导致一直读数据
         //                               修改为  err-out-rdhub-in
-        //按优先级排序，rdhub放在后面会导致一直无法断开连接，因为一次只处理一个事件
+        //按优先级排序，rdhub放在后面会导致一直无法正常断开连接，因为一次只处理一个事件----好像是错的 4/9
         CallDiscfunc();
+
+    else if(revents & EPOLLOUT)
+        CallWrfunc();
 
     else if(revents & EPOLLIN)
         //4/5，重大bug————长时间没判断出为什么会有莫名奇妙的fd值（特别大或者是负数），log中总是显示删除fd失败，写数据失败。

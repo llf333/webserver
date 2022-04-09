@@ -30,7 +30,6 @@ static void sig_thread(void* set)
 
         else if(sig == SIGTERM)
         {
-
             //delete所有资源并退出程序
             main_server->Server_Stop();
 
@@ -41,23 +40,23 @@ static void sig_thread(void* set)
         }
         else if(sig == SIGALRM) //llf 时间轮走过一个槽
         {
-//            std::string msg="its time to tick";
-//
-//            //llf 定时器每次到时就tick一下每个subreactor
-//            //也就是说，每经过一个alarm周期，就对所有的subreactor所对应的时间轮里面每一个定时器进行检验，若时间到了，就执行回调函数
-//            //只有连接socket才有定时器，用以通知连接超时
-//            for(auto& it:main_server->timeWheel_PipeOfWrite)
-//            {
-//                const char* msg="tick\0";//随便写点消息
-//                int ret= Write_to_fd(it,msg, strlen(msg));
-//
-//                if(ret==-1)
-//                {
-//                    Getlogger()->error("tick error in sig_thread");
-//                    exit(-1);
-//                }
-//                alarm(GlobalValue::TimeWheel_PerSlotTime);
-//            }
+            std::string msg="its time to tick";
+
+            //llf 定时器每次到时就tick一下每个subreactor
+            //也就是说，每经过一个alarm周期，就对所有的subreactor所对应的时间轮里面每一个定时器进行检验，若时间到了，就执行回调函数
+            //只有连接socket才有定时器，用以通知连接超时
+            for(auto& it:main_server->timeWheel_PipeOfWrite)
+            {
+                const char* msg="tick\0";//随便写点消息
+                int ret= Write_to_fd(it,msg, strlen(msg));
+
+                if(ret==-1)
+                {
+                    Getlogger()->error("tick error in sig_thread");
+                    exit(-1);
+                }
+                alarm(GlobalValue::TimeWheel_PerSlotTime);
+            }
         }
         else if(sig == SIGPIPE)
         {
@@ -122,8 +121,6 @@ int main(int argc,char* argv[])//llf argv[0]表示程序的名称
     Thread_Pool main_thread_pool=Thread_Pool(std::get<1>(*res));//这两个地方如果用指针，需要手动析构，因为成本一样，所以不用指针
     EventLoop main_reactor=EventLoop(true);
 
-
-
     //单例模式
     main_server=SERVER::Get_the_service(std::get<0>(*res),&main_reactor,&main_thread_pool);
 
@@ -131,7 +128,7 @@ int main(int argc,char* argv[])//llf argv[0]表示程序的名称
     main_server->Server_Start();
 
     //放在Reactor之前时间会更精准
- //   alarm(GlobalValue::TimeWheel_PerSlotTime);//这个时间应该是时间轮每一槽经过的时间
+    alarm(GlobalValue::TimeWheel_PerSlotTime);//这个时间应该是时间轮每一槽经过的时间
     main_reactor.StartLoop();
     return 0;
 }
