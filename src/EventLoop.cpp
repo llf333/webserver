@@ -15,6 +15,7 @@ EventLoop::EventLoop(bool ismain): is_mainReactor(ismain),epollfd(epoll_create1(
 
     //* llf
     // EPOLL_CLOEXEC  在文件描述符上面设置 执行时关闭（FD_CLOEXEC）标志描述符。
+    // "这个句柄我在fork子进程后执行exec时就关闭"
 
     //llf 时间轮的事件可读时表示时间轮走一格，即tick_fd[0]可读
     //下面添加的事件的fd就是tick_fd[0]，其可读回调函数是tick一下时间轮
@@ -152,7 +153,6 @@ bool EventLoop::DELChanel(Chanel* CHNL)//定时器也在这里面删除
                                     // 但是我觉得在eventloop中存储httpdata的没有必要，因此此处需要手动删除。
 
                                     //4/8  还是使用了http池
-
         //更改连接数量
         {
             std::unique_lock<std::mutex> locker(NUMmtx);
@@ -183,7 +183,7 @@ void EventLoop::ListenAndCall()
     while(!stop)//调试时，里面总有有一个事件会触发，那个事件是时间轮tick管道的可读事件
     {
 
-        int number= epoll_wait(epollfd,events,PerEpollMaxEvent,Epoll_timeout);
+        int number= epoll_wait(epollfd,events,PerEpollMaxEvent,Epoll_timeout);//阻塞调用
         if(number<0 && errno !=EINTR)
         {
             //日志输出epoll失败

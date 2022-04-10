@@ -243,7 +243,7 @@ int Read_from_fd(int fd,const char* buffer,int length)//read和write最好配套
 }
 
 
-std::optional<std::tuple<int,int,std::string>> AnalyseCommandLine(int argc,char* argv[])
+std::optional<std::tuple<int,int,std::string>> AnalyseCommandLine(int argc,char* argv[]) //c++ 17
 {
     const char* str="p:s:l:";//llf 字符后面有一个冒号表示必须带参数，两个冒号表示参数是可选的
     int res;
